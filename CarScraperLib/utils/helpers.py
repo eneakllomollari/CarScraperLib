@@ -2,26 +2,26 @@ import csv
 import datetime
 import logging
 
-from consts import CURR_DATE, DATE_FORMAT, DEALERSHIP_HISTORY, \
-    PRICE_HISTORY, LOG_PATH
+from ..constants.consts import DATE_FORMAT
 
 logger = logging.getLogger(__name__)
 
 
-def calculate_duration_and_history(car, master_table):
+def calculate_duration_and_history(price_history_file, dealership_history_file, car, master_table):
     listing_id = car.listing_id
     price = car.price
     dealer_name = car.dealer.name
-    car.last_date = CURR_DATE().strftime(DATE_FORMAT)
+    curr_date = datetime.datetime.now().strftime(DATE_FORMAT)
+    car.last_date = curr_date
     if listing_id in master_table.keys():
         car.first_date = master_table[listing_id].first_date
 
         if master_table[listing_id].price != price:
-            register_price_change(listing_id, price)
+            _register_price_change(price_history_file, listing_id, price)
         if master_table[listing_id].dealer.name != dealer_name:
-            register_dealer_change(listing_id, dealer_name)
+            _register_dealer_change(dealership_history_file, listing_id, dealer_name)
     else:
-        car.first_date = CURR_DATE().strftime(DATE_FORMAT)
+        car.first_date = curr_date
 
     car.duration = (
             datetime.date(
@@ -39,12 +39,22 @@ def calculate_duration_and_history(car, master_table):
     return car
 
 
-def register_price_change(car_id, price):
+def configure_logger(log_path):
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(name)s: \t %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        filename=log_path,
+    )
+
+
+def _register_price_change(price_history_file, car_id, price):
     logger.info(f'\t\t Registering price change to {price} for car id: {car_id}')
     new_rows_list = []
     flag = False
+    curr_date = datetime.datetime.now().strftime(DATE_FORMAT)
 
-    with open(PRICE_HISTORY, 'r') as csv_file:
+    with open(price_history_file, 'r') as csv_file:
         for row in csv.reader(csv_file, delimiter=','):
             curr_id = row[0]
             if car_id == curr_id:
@@ -52,23 +62,25 @@ def register_price_change(car_id, price):
 
                 new_row = [v for v in row]
                 new_row.append(price)
-                new_row.append(CURR_DATE().strftime(DATE_FORMAT))
+                new_row.append(curr_date)
 
                 new_rows_list.append(new_row)
             else:
                 new_rows_list.append(row)
     if not flag:
-        new_rows_list.append([car_id, price, CURR_DATE().strftime(DATE_FORMAT)])
-    write_list_to_file(new_rows_list, PRICE_HISTORY)
+        new_rows_list.append([car_id, price, curr_date])
+    _write_list_to_file(new_rows_list, price_history_file)
 
 
-def register_dealer_change(car_id, dealer):
+def _register_dealer_change(dealership_history_file, car_id, dealer):
     logger.info(f'\t\t Registering dealer change to {dealer} for car id: {car_id}')
     new_rows_list = []
     dealer = dealer.replace(',', ';')
     flag = False
+    curr_date = datetime.datetime.now().strftime(DATE_FORMAT)
 
-    with open(DEALERSHIP_HISTORY, 'r') as csv_file:
+    with open(dealership_history_file, 'r') as csv_file:
+
         for row in csv.reader(csv_file, delimiter=','):
             curr_id = row[0]
             if car_id == curr_id:
@@ -76,28 +88,19 @@ def register_dealer_change(car_id, dealer):
 
                 new_row = [v for v in row]
                 new_row.append(dealer)
-                new_row.append(CURR_DATE().strftime(DATE_FORMAT))
+                new_row.append(curr_date)
 
                 new_rows_list.append(new_row)
             else:
                 new_rows_list.append(row)
 
     if not flag:
-        row = [curr_id, dealer, CURR_DATE().strftime(DATE_FORMAT)]
+        row = [curr_id, dealer, curr_date]
         new_rows_list.append(row)
-    write_list_to_file(new_rows_list, DEALERSHIP_HISTORY)
+    _write_list_to_file(new_rows_list, dealership_history_file)
 
 
-def write_list_to_file(content_list, file_loc):
+def _write_list_to_file(content_list, file_loc):
     with open(file_loc, 'w') as file2:
         writer = csv.writer(file2)
         writer.writerows(content_list)
-
-
-def configure_logger():
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s [%(levelname)s] %(name)s: \t %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S',
-        filename=LOG_PATH,
-    )

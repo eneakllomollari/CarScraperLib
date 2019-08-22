@@ -1,29 +1,35 @@
 import csv
+import datetime
 import logging
-from datetime import datetime
 
 import xlrd
 import xlsxwriter
 
-from classes.dealer import Dealer
-from classes.vehicle import Vehicle
-from consts import MASTER_TABLE, CURR_DATE, DATE_FORMAT, MASTER_TABLE_HEADER_FORMAT, SOLD_CAR_COL, AVAIL_CAR_COL, \
-    BG_COL_KEY, MT_CELL_FORMAT, LISTING_ID_COL, VIN_COL, \
-    MAKE_COL, MODEL_COL, TRIM_COL, BODY_STYLE_COL, FIRST_DATE_COL, LAST_DATE_COL, DURATION_COL, PRICE_COL, \
-    MILEAGE_COL, YEAR_COL, DEALER_NAME_COL, DEALER_PHONE_COL, DEALER_RATING_COL, DEALER_ADDRESS_COL, HREF_COL, \
-    LISTING_ID_COL_WIDTH, VIN_COL_WIDTH, MAKE_COL_WIDTH, MODEL_COL_WIDTH, DEALER_NAME_COL_WIDTH, \
-    DEALER_PHONE_COL_WIDTH, DEALER_RATING_COL_WIDTH, DEALER_ADDRESS_COL_WIDTH, HREF_COL_WIDTH, LISTING_ID_HEADER, \
-    VIN_HEADER, MAKE_HEADER, MODEL_HEADER, TRIM_HEADER, BODY_STYLE_HEADER, FIRST_DATE_HEADER, LAST_DATE_HEADER, \
-    DURATION_HEADER, PRICE_HEADER, MILEAGE_HEADER, YEAR_HEADER, DEALER_NAME_HEADER, DEALER_PHONE_HEADER, \
-    DEALER_RATING_HEADER, DEALER_ADDRESS_HEADER, HREF_HEADER, TRIM_COL_WIDTH, BODY_STYLE_COL_WIDTH, \
-    FIRST_DATE_COL_WIDTH, LAST_DATE_COL_WIDTH, DURATION_COL_WIDTH, PRICE_COL_WIDTH, MILEAGE_COL_WIDTH, YEAR_COL_WIDTH
+from ..classes.dealer import Dealer
+from ..classes.vehicle import Vehicle
+from ..constants.consts import DATE_FORMAT, MASTER_TABLE_HEADER_FORMAT, SOLD_CAR_COL, AVAIL_CAR_COL, \
+    BG_COL_KEY, MT_CELL_FORMAT, LISTING_ID_COL, VIN_COL, MAKE_COL, MODEL_COL, TRIM_COL, BODY_STYLE_COL, \
+    FIRST_DATE_COL, LAST_DATE_COL, DURATION_COL, PRICE_COL, MILEAGE_COL, YEAR_COL, DEALER_NAME_COL, DEALER_PHONE_COL, \
+    DEALER_RATING_COL, DEALER_ADDRESS_COL, HREF_COL, LISTING_ID_COL_WIDTH, VIN_COL_WIDTH, MAKE_COL_WIDTH, \
+    MODEL_COL_WIDTH, DEALER_NAME_COL_WIDTH, DEALER_PHONE_COL_WIDTH, DEALER_RATING_COL_WIDTH, DEALER_ADDRESS_COL_WIDTH, \
+    HREF_COL_WIDTH, LISTING_ID_HEADER, VIN_HEADER, MAKE_HEADER, MODEL_HEADER, TRIM_HEADER, BODY_STYLE_HEADER, \
+    FIRST_DATE_HEADER, LAST_DATE_HEADER, DURATION_HEADER, PRICE_HEADER, MILEAGE_HEADER, YEAR_HEADER, \
+    DEALER_NAME_HEADER, DEALER_PHONE_HEADER, DEALER_RATING_HEADER, DEALER_ADDRESS_HEADER, HREF_HEADER, TRIM_COL_WIDTH, \
+    BODY_STYLE_COL_WIDTH, FIRST_DATE_COL_WIDTH, LAST_DATE_COL_WIDTH, DURATION_COL_WIDTH, PRICE_COL_WIDTH, \
+    MILEAGE_COL_WIDTH, YEAR_COL_WIDTH
 
 logger = logging.getLogger(__name__)
 
 
-def get_master_table(jsonify=False):
+def get_master_table(master_table_loc, jsonify=False):
+    """
+    :param master_table_loc:  path of the master table excel file
+    :param jsonify: if True returns a `dict` representation of all the vehicle data,
+                    else    returns a `dict` with 'listing_id' as keys and `classes.Vehicle` as values
+    :return: `classes.Vehicle` or `dict` representation of the cars in `master_table_loc`
+    """
     master_table = {}
-    sheet = xlrd.open_workbook(MASTER_TABLE).sheet_by_index(0)
+    sheet = xlrd.open_workbook(master_table_loc).sheet_by_index(0)
     for i in range(sheet.nrows):
         if i == 0:
             continue
@@ -37,7 +43,7 @@ def get_master_table(jsonify=False):
             body_style=get(i, BODY_STYLE_COL),
             first_date=get(i, FIRST_DATE_COL),
             last_date=get(i, LAST_DATE_COL),
-            duration=get_duration(get(i, FIRST_DATE_COL), get(i, LAST_DATE_COL)),
+            duration=_get_duration(get(i, FIRST_DATE_COL), get(i, LAST_DATE_COL)),
             price=get(i, PRICE_COL),
             mileage=get(i, MILEAGE_COL),
             year=get(i, YEAR_COL),
@@ -53,25 +59,51 @@ def get_master_table(jsonify=False):
     return master_table
 
 
-def save_to_spreadsheet(master_table):
+def save_master_table(master_table_loc, master_table):
+    """
+    :param master_table_loc: path where the master table excel file will be saved
+    :param master_table: `dict` object with `listing_id` keys and `classes.Car` objects
+    :return: None
+    """
     column = 0
     row = 1
-    workbook = xlsxwriter.Workbook(MASTER_TABLE)
+    workbook = xlsxwriter.Workbook(master_table_loc)
     worksheet = workbook.add_worksheet()
     header_format = workbook.add_format(MASTER_TABLE_HEADER_FORMAT)
 
-    save_column_widths(worksheet)
-    save_worksheet_headers(worksheet, column, header_format)
+    _save_column_widths(worksheet)
+    _save_worksheet_headers(worksheet, column, header_format)
 
     for car in master_table.values():
-        save_car_to_worksheet(worksheet, row, column, car, workbook)
+        _save_car_to_worksheet(worksheet, row, column, car, workbook)
         row += 1
     workbook.close()
-    logger.info(f'\t Saved master table data to {MASTER_TABLE}')
+    logger.info(f'\t Saved master table data to {master_table_loc}')
 
 
-def save_car_to_worksheet(worksheet, row, column, car, workbook):
-    MT_CELL_FORMAT[BG_COL_KEY] = SOLD_CAR_COL if car.last_date != CURR_DATE().strftime(DATE_FORMAT) else AVAIL_CAR_COL
+def get_history(path):
+    """
+    :param path: path of the csv file that contains the changes over time
+        required file format:
+            unique_identifier_1,date1,value1,date2,value2
+            unique_identifier_2,date21,value21
+    :return: `dict` with `unique_identifier` as key and `list` with the history as value
+    """
+    history_dict = {}
+    with open(path, 'r') as csv_file:
+        for row in csv.reader(csv_file, delimiter=','):
+            val = {}
+            history_row = row[1:]
+            for i in range(len(history_row)):
+                val[history_row[i + 1]] = history_row[i]
+                i += 2
+            history_dict[row[0]] = val
+    return history_dict
+
+
+def _save_car_to_worksheet(worksheet, row, column, car, workbook):
+    curr_date = datetime.datetime.now().strftime(DATE_FORMAT)
+    MT_CELL_FORMAT[BG_COL_KEY] = SOLD_CAR_COL if car.last_date != curr_date else AVAIL_CAR_COL
 
     cell_format = workbook.add_format(MT_CELL_FORMAT)
 
@@ -94,7 +126,7 @@ def save_car_to_worksheet(worksheet, row, column, car, workbook):
     worksheet.write(row, column + HREF_COL, car.href)
 
 
-def save_worksheet_headers(worksheet, col, header_format):
+def _save_worksheet_headers(worksheet, col, header_format):
     worksheet.write(0, col + LISTING_ID_COL, LISTING_ID_HEADER, header_format)
     worksheet.write(0, col + VIN_COL, VIN_HEADER, header_format)
     worksheet.write(0, col + MAKE_COL, MAKE_HEADER, header_format)
@@ -114,7 +146,7 @@ def save_worksheet_headers(worksheet, col, header_format):
     worksheet.write(0, col + 16, HREF_HEADER, header_format)
 
 
-def save_column_widths(worksheet):
+def _save_column_widths(worksheet):
     worksheet.set_column(LISTING_ID_COL, LISTING_ID_COL, LISTING_ID_COL_WIDTH)
     worksheet.set_column(VIN_COL, VIN_COL, VIN_COL_WIDTH)
     worksheet.set_column(MAKE_COL, MAKE_COL, MAKE_COL_WIDTH)
@@ -134,19 +166,6 @@ def save_column_widths(worksheet):
     worksheet.set_column(HREF_COL, HREF_COL, HREF_COL_WIDTH)
 
 
-def get_duration(first_date, last_date):
-    return (datetime.strptime(last_date, DATE_FORMAT) - datetime.strptime(first_date, DATE_FORMAT)).days
-
-
-# WIP
-def get_history(path):
-    history_dict = {}
-    with open(path, 'r') as csv_file:
-        for row in csv.reader(csv_file, delimiter=','):
-            val = {}
-            history_row = row[1:]
-            for i in range(len(history_row)):
-                val[history_row[i + 1]] = history_row[i]
-                i += 2
-            history_dict[row[0]] = val
-    return history_dict
+def _get_duration(first_date, last_date):
+    return (datetime.datetime.strptime(last_date, DATE_FORMAT) - datetime.datetime.strptime(first_date,
+                                                                                            DATE_FORMAT)).days

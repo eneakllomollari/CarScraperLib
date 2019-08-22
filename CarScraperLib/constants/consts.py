@@ -1,54 +1,17 @@
 import datetime
-import os
 
-
-def make_dir(directory):
-    if not os.path.isdir(directory):
-        os.mkdir(directory)
-
-
-def find_resource_file(filename, res_output_dir='res'):
-    make_dir(res_output_dir)
-    return os.path.join(os.path.dirname(__file__), f'{res_output_dir}/', filename)
-
-
-def find_log_file(filename, log_output_dir='logs'):
-    make_dir(log_output_dir)
-    return os.path.join(os.path.dirname(__file__), f'{log_output_dir}/', filename)
-
-
-def find_main_file(filename):
-    return os.path.join(os.path.dirname(__file__), filename)
-
-
-CURR_DATE = datetime.datetime.today
 DATE_FORMAT = '%m-%d-%Y'
+CURR_DATE = datetime.datetime.now().strftime(DATE_FORMAT)
 
-ZIP_CODE = '93637'
-SEARCH_RADIUS = '450'
-LISTINGS_PER_PAGE = '100'
-
-MASTER_TABLE = find_resource_file('masterTable.xlsx')
-SUMMARY_ALL = find_resource_file('all_cars.xlsx')
-SUMMARY_SOLD = find_resource_file('sold_cars.xlsx')
-DEALERSHIP_HISTORY = find_resource_file('dealership_history.csv')
-PRICE_HISTORY = find_resource_file('price_history.csv')
-DEALER_GEOLOCATION = find_resource_file('dealers_geolocation.csv')
-DEALER_MAP = find_resource_file('dealer_map.html')
-
-LOG_DIR = 'logs'
-LOG_PATH = find_log_file(f'{CURR_DATE()}_scrape_job.log', log_output_dir=LOG_DIR)
-
-SEARCH_URL = 'https://www.cars.com/for-sale/searchresults.action/?fuelTypeId=38745&page={}&perPage={}&rd={}' \
-             '&zc={}&userSetIxt=true'
+CARS_COM_SEARCH_URL = 'https://www.cars.com/for-sale/searchresults.action/?fuelTypeId=38745&page={}&perPage={}&rd={}' \
+                      '&zc={}&userSetIxt=true'
+CARS_COM_VEHICLE_HREF_FORMAT = 'https://www.cars.com/vehicledetail/detail/{}/overview/'
 
 GOOGLE_MAPS_REQUEST_URL = 'https://maps.googleapis.com/maps/api/geocode/json?address={}&key={}'
-GCP_API_KEY = find_main_file('gcp_api.key')
 
-TARGET_STATE = 'CA'
 DEALER_RATING_FORMAT = '({}) {} Reviews'
 DEALER_ADDRESS_FORMAT = '{}, {}, {}'
-VEHICLE_HREF_FORMAT = 'https://www.cars.com/vehicledetail/detail/{}/overview/'
+LISTINGS_PER_PAGE = '100'
 
 TOTAL_NUM_PAGES = 'totalNumPages'
 LISTING_ID = 'listingId'

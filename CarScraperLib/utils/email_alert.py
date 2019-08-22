@@ -1,15 +1,16 @@
+import datetime
 import smtplib
 import sys
 import traceback
 from email.mime.text import MIMEText
 
-from consts import CURR_DATE, DATE_FORMAT
+from ..constants.consts import DATE_FORMAT
 
 
 def send_email():
-    msg = MIMEText(get_msg_body())
+    msg = MIMEText(_get_msg_body())
 
-    msg['Subject'] = f'[PHEV Vehicle Scraper ALERT] {CURR_DATE().strftime(DATE_FORMAT)}!'
+    msg['Subject'] = f'[PHEV Vehicle Scraper ALERT] {datetime.datetime.now().strftime(DATE_FORMAT)}!'
     msg['From'] = 'PHEV Vehicle Scraper'
     msg['To'] = 'PHEV Vehicle Scraper'
 
@@ -22,7 +23,7 @@ def send_email():
     s.quit()
 
 
-def get_msg_body():
+def _get_msg_body():
     exc_type, exc_value, exc_traceback = sys.exc_info()
 
     error_str = '=' * 80 + '\n'

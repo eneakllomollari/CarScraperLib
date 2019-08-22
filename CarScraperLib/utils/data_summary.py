@@ -1,35 +1,36 @@
+import datetime
 import logging
 
 import pandas as pd
 import xlrd
 
-from consts import MASTER_TABLE, SUMMARY_SOLD, SUMMARY_ALL, CURR_DATE, DATE_FORMAT, \
-    CELL_FORMAT_1, CELL_FORMAT_2, MANUF_SHEET_COND_FORMAT_1, MANUF_SHEET_COND_FORMAT_2, NUM_CARS_HEADER, \
-    AVG_DURATION_HEADER, AVG_PRICE_HEADER, DEALER_SHEET_NAME, MANUFACTURER_SHEET_NAME, MAKE_COL, LAST_DATE_COL, \
-    DURATION_COL, PRICE_COL, DEALER_SHEET_COND_FORMAT_1, DEALER_SHEET_COND_FORMAT_2, DEFAULT_ROW_WIDTH, DEALER_NAME_COL
+from ..constants.consts import DATE_FORMAT, CELL_FORMAT_1, CELL_FORMAT_2, MANUF_SHEET_COND_FORMAT_1, \
+    MANUF_SHEET_COND_FORMAT_2, NUM_CARS_HEADER, AVG_DURATION_HEADER, AVG_PRICE_HEADER, DEALER_SHEET_NAME, \
+    MANUFACTURER_SHEET_NAME, MAKE_COL, LAST_DATE_COL, DURATION_COL, PRICE_COL, DEALER_SHEET_COND_FORMAT_1, \
+    DEALER_SHEET_COND_FORMAT_2, DEFAULT_ROW_WIDTH, DEALER_NAME_COL
 
 logger = logging.getLogger(__name__)
 
 
-def main():
-    writer_all = pd.ExcelWriter(SUMMARY_ALL, engine='xlsxwriter')
-    writer_sold = pd.ExcelWriter(SUMMARY_SOLD, engine='xlsxwriter')
+def main(master_table_loc, summary_all, summary_sold):
+    writer_all = pd.ExcelWriter(summary_all, engine='xlsxwriter')
+    writer_sold = pd.ExcelWriter(summary_sold, engine='xlsxwriter')
 
-    dealer_main_all(writer_all)
-    manuf_main_all(writer_all)
+    dealer_main_all(master_table_loc, writer_all)
+    manuf_main_all(master_table_loc, writer_all)
     writer_all.save()
 
-    logger.info(f'Summarized dealer and manufacturer data for all cars in:    {SUMMARY_ALL}')
+    logger.info(f'Summarized dealer and manufacturer data for all cars in:    {summary_all}')
 
-    dealer_main_sold(writer_sold)
-    manuf_main_sold(writer_sold)
+    dealer_main_sold(master_table_loc, writer_sold)
+    manuf_main_sold(master_table_loc, writer_sold)
     writer_sold.save()
 
-    logger.info(f'Summarized dealer and manufacturer data for sold cars only: {SUMMARY_SOLD}')
+    logger.info(f'Summarized dealer and manufacturer data for sold cars only: {summary_sold}')
 
 
-def dealer_main_sold(writer):
-    dealer_dict = get_dict_dealers_sold()
+def dealer_main_sold(master_table_loc, writer):
+    dealer_dict = get_dict_dealers_sold(master_table_loc)
     dealer_df = pd.DataFrame(dealer_dict, index=[NUM_CARS_HEADER, AVG_DURATION_HEADER]).transpose()
 
     dealer_df.to_excel(writer, sheet_name=DEALER_SHEET_NAME)
@@ -40,8 +41,8 @@ def dealer_main_sold(writer):
     dealer_cell_format(workbook, worksheet, len(dealer_dict) + 1)
 
 
-def dealer_main_all(writer):
-    dealer_dict = get_dict_dealers_all()
+def dealer_main_all(master_table_loc, writer):
+    dealer_dict = get_dict_dealers_all(master_table_loc)
     dealer_df = pd.DataFrame(dealer_dict, index=[NUM_CARS_HEADER, AVG_DURATION_HEADER]).transpose()
     dealer_df.to_excel(writer, sheet_name=DEALER_SHEET_NAME)
 
@@ -51,8 +52,8 @@ def dealer_main_all(writer):
     dealer_cell_format(workbook, worksheet, len(dealer_dict) + 1)
 
 
-def manuf_main_all(writer):
-    my_dict = get_dict_manufacturers_all()
+def manuf_main_all(master_table_loc, writer):
+    my_dict = get_dict_manufacturers_all(master_table_loc)
 
     data_frame = pd.DataFrame(my_dict, index=[NUM_CARS_HEADER, AVG_PRICE_HEADER, AVG_DURATION_HEADER]).transpose()
 
@@ -64,8 +65,8 @@ def manuf_main_all(writer):
     manufacturer_cell_format(workbook, worksheet, len(my_dict) + 1)
 
 
-def manuf_main_sold(writer):
-    my_dict = get_dict_manufacturers_sold()
+def manuf_main_sold(master_table_loc, writer):
+    my_dict = get_dict_manufacturers_sold(master_table_loc)
 
     index = [NUM_CARS_HEADER, AVG_PRICE_HEADER, AVG_DURATION_HEADER]
     data_frame = pd.DataFrame(my_dict, index=index).transpose()
@@ -78,9 +79,9 @@ def manuf_main_sold(writer):
     manufacturer_cell_format(workbook, worksheet, len(my_dict) + 1)
 
 
-def get_dict_dealers_all():
+def get_dict_dealers_all(master_table_loc):
     dealer_dict = {}
-    sheet = xlrd.open_workbook(MASTER_TABLE).sheet_by_index(0)
+    sheet = xlrd.open_workbook(master_table_loc).sheet_by_index(0)
 
     for i in range(sheet.nrows):
         if i == 0:
@@ -90,7 +91,7 @@ def get_dict_dealers_all():
         if dealer_name not in dealer_dict.keys():
             dealer_dict[dealer_name] = [1, duration]
         else:
-            dealer_dict[dealer_name][0] = dealer_dict[dealer_name][0] + 1
+            dealer_dict[dealer_name][0] += 1
             dealer_dict[dealer_name][1] += duration
 
     for my_list in dealer_dict.values():
@@ -99,9 +100,9 @@ def get_dict_dealers_all():
     return dealer_dict
 
 
-def get_dict_dealers_sold():
+def get_dict_dealers_sold(master_table_loc):
     dealer_dict = {}
-    sheet = xlrd.open_workbook(MASTER_TABLE).sheet_by_index(0)
+    sheet = xlrd.open_workbook(master_table_loc).sheet_by_index(0)
 
     for i in range(sheet.nrows):
         if i == 0:
@@ -110,12 +111,12 @@ def get_dict_dealers_sold():
         last_date = sheet.cell_value(i, LAST_DATE_COL)
         duration = int(sheet.cell_value(i, DURATION_COL))
 
-        if CURR_DATE().strftime(DATE_FORMAT) == last_date:
+        if datetime.datetime.now().strftime(DATE_FORMAT) == last_date:
             continue
         elif dealer_name not in dealer_dict.keys():
             dealer_dict[dealer_name] = [1, duration]
         else:
-            dealer_dict[dealer_name][0] = dealer_dict[dealer_name][0] + 1
+            dealer_dict[dealer_name][0] += 1
             dealer_dict[dealer_name][1] += duration
 
     for my_list in dealer_dict.values():
@@ -124,9 +125,9 @@ def get_dict_dealers_sold():
     return dealer_dict
 
 
-def get_dict_manufacturers_all():
+def get_dict_manufacturers_all(master_table_loc):
     manufacturer_dict = {}
-    sheet = xlrd.open_workbook(MASTER_TABLE).sheet_by_index(0)
+    sheet = xlrd.open_workbook(master_table_loc).sheet_by_index(0)
 
     for i in range(sheet.nrows):
         if i == 0:
@@ -154,9 +155,9 @@ def get_dict_manufacturers_all():
     return manufacturer_dict
 
 
-def get_dict_manufacturers_sold():
+def get_dict_manufacturers_sold(master_table_loc):
     manufacturer_dict = {}
-    sheet = xlrd.open_workbook(MASTER_TABLE).sheet_by_index(0)
+    sheet = xlrd.open_workbook(master_table_loc).sheet_by_index(0)
     for i in range(sheet.nrows):
         if i == 0:
             continue
@@ -169,7 +170,7 @@ def get_dict_manufacturers_sold():
         if not price or price == 'N/A':
             continue
 
-        if CURR_DATE().strftime(DATE_FORMAT) == last_date:
+        if datetime.datetime.now().strftime(DATE_FORMAT) == last_date:
             continue
         elif make not in manufacturer_dict.keys():
             manufacturer_dict[make] = [1, float(price), duration]
