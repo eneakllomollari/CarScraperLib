@@ -15,7 +15,7 @@ from ..consts import DATE_FORMAT, MASTER_TABLE_HEADER_FORMAT, SOLD_CAR_COL, AVAI
     DEALER_NAME_HEADER, DEALER_PHONE_HEADER, DEALER_RATING_HEADER, DEALER_ADDRESS_HEADER, HREF_HEADER, TRIM_COL_WIDTH, \
     BODY_STYLE_COL_WIDTH, FIRST_DATE_COL_WIDTH, LAST_DATE_COL_WIDTH, DURATION_COL_WIDTH, PRICE_COL_WIDTH, \
     MILEAGE_COL_WIDTH, YEAR_COL_WIDTH
-from ..utils.helpers import _get_duration, make_file
+from ..utils.helpers import _get_duration
 
 
 def get_master_table(master_table_loc, jsonify=False):
