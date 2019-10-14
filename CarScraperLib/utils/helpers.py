@@ -1,13 +1,11 @@
 import csv
 import datetime
-import logging
-
 import yaml
 
 from ..consts import CURR_DATE, DATE_FORMAT
 
 
-def calculate_duration_and_history(price_history, dealership_history, car, master_table):
+def update_duration_and_history(price_history, dealership_history, car, master_table):
     listing_id = car.listing_id
     car.last_date = CURR_DATE
     car.first_date = master_table[listing_id].first_date if listing_id in master_table.keys() else CURR_DATE
@@ -20,13 +18,9 @@ def calculate_duration_and_history(price_history, dealership_history, car, maste
     return car
 
 
-def configure_logger(log_path):
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s [%(levelname)s] %(name)s: \t %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S',
-        filename=log_path,
-    )
+def load_yaml_file(file_name):
+    with open(file_name) as f:
+        return yaml.full_load(f)
 
 
 def _save_change(history_file, car_id, item):
@@ -49,11 +43,6 @@ def _write_list_to_file(content_list, file_loc):
     with open(file_loc, 'w') as f:
         writer = csv.writer(f)
         writer.writerows(content_list)
-
-
-def load_yaml_file(file_name):
-    with open(file_name) as f:
-        return yaml.full_load(f)
 
 
 def _get_duration(first_date, last_date):

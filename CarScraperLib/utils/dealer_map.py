@@ -13,7 +13,6 @@ def build_map(master_table_loc, dealers_geolocation_loc, dealer_map_loc, gcp_api
     :param dealers_geolocation_loc: path of the dealer geolocation csv file
     :param dealer_map_loc: path where the dealer map will be saved
     :param gcp_api_key: GCP api key to be used for address geo-locations
-    :return:
     """
     try:
         dealer_dict = _get_dict_dealers(dealers_geolocation_loc)

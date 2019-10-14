@@ -9,67 +9,55 @@ from ..consts import DATE_FORMAT, CELL_FORMAT_1, CELL_FORMAT_2, MANUFACTURER_SHE
     DEALER_SHEET_COND_FORMAT_2, DEFAULT_ROW_WIDTH, DEALER_NAME_COL, NOT_APPLICABLE
 
 
-def main(master_table_loc, summary_all, summary_sold):
+def summarize(master_table_loc, summary_all, summary_sold):
+    """
+    :param master_table_loc: location of the master_table excel
+    :param summary_all: where to save the summary for all cars
+    :param summary_sold: where the save the summary of sold cars
+    """
     writer_all = pandas.ExcelWriter(summary_all, engine='xlsxwriter')
     writer_sold = pandas.ExcelWriter(summary_sold, engine='xlsxwriter')
 
-    dealer_main_all(master_table_loc, writer_all)
-    manufacturer_main_all(master_table_loc, writer_all)
+    _dealer_all(master_table_loc, writer_all)
+    _manufacturer_all(master_table_loc, writer_all)
     writer_all.save()
 
-    dealer_main_sold(master_table_loc, writer_sold)
-    manufacturer_main_sold(master_table_loc, writer_sold)
+    _dealer_sold(master_table_loc, writer_sold)
+    _manufacturer_sold(master_table_loc, writer_sold)
     writer_sold.save()
 
 
-def dealer_main_sold(master_table_loc, writer):
+def _dealer_sold(master_table_loc, writer):
     dealer_dict = get_dict_dealers_sold(master_table_loc)
     dealer_df = pandas.DataFrame(dealer_dict, index=[NUM_CARS_HEADER, AVG_DURATION_HEADER]).transpose()
-
     dealer_df.to_excel(writer, sheet_name=DEALER_SHEET_NAME)
 
-    workbook = writer.book
-    worksheet = writer.sheets[DEALER_SHEET_NAME]
-
-    dealer_cell_format(workbook, worksheet, len(dealer_dict) + 1)
+    _dealer_cell_format(writer.book, writer.sheets[DEALER_SHEET_NAME], len(dealer_dict) + 1)
 
 
-def dealer_main_all(master_table_loc, writer):
+def _dealer_all(master_table_loc, writer):
     dealer_dict = get_dict_dealers_all(master_table_loc)
     dealer_df = pandas.DataFrame(dealer_dict, index=[NUM_CARS_HEADER, AVG_DURATION_HEADER]).transpose()
     dealer_df.to_excel(writer, sheet_name=DEALER_SHEET_NAME)
 
-    workbook = writer.book
-    worksheet = writer.sheets[DEALER_SHEET_NAME]
-
-    dealer_cell_format(workbook, worksheet, len(dealer_dict) + 1)
+    _dealer_cell_format(writer.book, writer.sheets[DEALER_SHEET_NAME], len(dealer_dict) + 1)
 
 
-def manufacturer_main_all(master_table_loc, writer):
+def _manufacturer_all(master_table_loc, writer):
     my_dict = get_dict_manufacturers_all(master_table_loc)
 
     data_frame = pandas.DataFrame(my_dict, index=[NUM_CARS_HEADER, AVG_PRICE_HEADER, AVG_DURATION_HEADER]).transpose()
-
     data_frame.to_excel(writer, sheet_name=MANUFACTURER_SHEET_NAME)
 
-    workbook = writer.book
-    worksheet = writer.sheets[MANUFACTURER_SHEET_NAME]
-
-    manufacturer_cell_format(workbook, worksheet, len(my_dict) + 1)
+    _manufacturer_cell_format(writer.book, writer.sheets[MANUFACTURER_SHEET_NAME], len(my_dict) + 1)
 
 
-def manufacturer_main_sold(master_table_loc, writer):
+def _manufacturer_sold(master_table_loc, writer):
     my_dict = get_dict_manufacturers_sold(master_table_loc)
-
-    index = [NUM_CARS_HEADER, AVG_PRICE_HEADER, AVG_DURATION_HEADER]
-    data_frame = pandas.DataFrame(my_dict, index=index).transpose()
-
+    data_frame = pandas.DataFrame(my_dict, index=[NUM_CARS_HEADER, AVG_PRICE_HEADER, AVG_DURATION_HEADER]).transpose()
     data_frame.to_excel(writer, sheet_name=MANUFACTURER_SHEET_NAME)
 
-    workbook = writer.book
-    worksheet = writer.sheets[MANUFACTURER_SHEET_NAME]
-
-    manufacturer_cell_format(workbook, worksheet, len(my_dict) + 1)
+    _manufacturer_cell_format(writer.book, writer.sheets[MANUFACTURER_SHEET_NAME], len(my_dict) + 1)
 
 
 def get_dict_dealers_all(master_table_loc):
@@ -135,12 +123,8 @@ def get_dict_manufacturers_sold(master_table_loc):
     for i in range(sheet.nrows):
         if i == 0:
             continue
-
-        make = sheet.cell_value(i, MAKE_COL)
-        last_date = sheet.cell_value(i, LAST_DATE_COL)
-        duration = int(sheet.cell_value(i, DURATION_COL))
-        price = sheet.cell_value(i, PRICE_COL)
-
+        make, last_date = sheet.cell_value(i, MAKE_COL), sheet.cell_value(i, LAST_DATE_COL)
+        duration, price = int(sheet.cell_value(i, DURATION_COL)), sheet.cell_value(i, PRICE_COL)
         if not price or price == 'N/A':
             continue
 
@@ -153,7 +137,6 @@ def get_dict_manufacturers_sold(master_table_loc):
             my_list[0] += 1
             my_list[1] += float(price)
             my_list[2] += duration
-
     return _update_manufacturer_dict(manufacturer_dict)
 
 
@@ -171,7 +154,7 @@ def _update_dealer_dict(dealer_dict):
     return dealer_dict
 
 
-def dealer_cell_format(workbook, worksheet, num_rows):
+def _dealer_cell_format(workbook, worksheet, num_rows):
     worksheet.set_column(0, 0, 2 * DEFAULT_ROW_WIDTH)
     worksheet.set_default_row(DEFAULT_ROW_WIDTH)
 
@@ -185,7 +168,7 @@ def dealer_cell_format(workbook, worksheet, num_rows):
     worksheet.conditional_format(f'C2:B{num_rows}', DEALER_SHEET_COND_FORMAT_2)
 
 
-def manufacturer_cell_format(workbook, worksheet, num_rows):
+def _manufacturer_cell_format(workbook, worksheet, num_rows):
     worksheet.set_default_row(DEFAULT_ROW_WIDTH)
 
     MANUFACTURER_SHEET_COND_FORMAT_1['format'] = workbook.add_format(CELL_FORMAT_1)

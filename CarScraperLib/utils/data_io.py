@@ -15,7 +15,7 @@ from ..consts import DATE_FORMAT, MASTER_TABLE_HEADER_FORMAT, SOLD_CAR_COL, AVAI
     DEALER_NAME_HEADER, DEALER_PHONE_HEADER, DEALER_RATING_HEADER, DEALER_ADDRESS_HEADER, HREF_HEADER, TRIM_COL_WIDTH, \
     BODY_STYLE_COL_WIDTH, FIRST_DATE_COL_WIDTH, LAST_DATE_COL_WIDTH, DURATION_COL_WIDTH, PRICE_COL_WIDTH, \
     MILEAGE_COL_WIDTH, YEAR_COL_WIDTH
-from ..utils.helpers import _get_duration
+from ..utils.helpers import _get_duration, make_file
 
 
 def get_master_table(master_table_loc, jsonify=False):
@@ -56,14 +56,13 @@ def get_master_table(master_table_loc, jsonify=False):
     return master_table
 
 
-def save_master_table(master_table_loc, master_table):
-    """
+def save_master_table(master_table, master_table_loc):
+    """ Saves `master_table` to `master_table_loc`
     :param master_table_loc: path where the master table excel file will be saved
     :param master_table: `dict` object with `listing_id` keys and `classes.Car` objects
     :return: None
     """
     column = 0
-    row = 1
     workbook = xlsxwriter.Workbook(master_table_loc)
     worksheet = workbook.add_worksheet()
     header_format = workbook.add_format(MASTER_TABLE_HEADER_FORMAT)
@@ -71,9 +70,8 @@ def save_master_table(master_table_loc, master_table):
     _save_column_widths(worksheet)
     _save_worksheet_headers(worksheet, column, header_format)
 
-    for car in master_table.values():
+    for row, car in enumerate(master_table.values(), start=1):
         _save_car_to_worksheet(worksheet, row, column, car, workbook)
-        row += 1
     workbook.close()
 
 
@@ -99,9 +97,7 @@ def get_history(path):
 def _save_car_to_worksheet(worksheet, row, column, car, workbook):
     curr_date = datetime.datetime.now().strftime(DATE_FORMAT)
     MT_CELL_FORMAT[BG_COL_KEY] = SOLD_CAR_COL if car.last_date != curr_date else AVAIL_CAR_COL
-
     cell_format = workbook.add_format(MT_CELL_FORMAT)
-
     worksheet.write(row, column + LISTING_ID_COL, car.listing_id, cell_format)
     worksheet.write(row, column + VIN_COL, car.vin, cell_format)
     worksheet.write(row, column + MAKE_COL, car.make, cell_format)

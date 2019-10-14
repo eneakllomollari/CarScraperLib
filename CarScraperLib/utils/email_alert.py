@@ -7,7 +7,7 @@ from email.mime.text import MIMEText
 from ..consts import DATE_FORMAT
 
 
-def send_email(sender, receivers):
+def send_email_with_trackeback_info(sender, receivers):
     msg = MIMEText(_get_msg_body())
     msg['Subject'] = f'[PHEV Vehicle Scraper ALERT] {datetime.datetime.now().strftime(DATE_FORMAT)}!'
     msg['From'] = 'PHEV Vehicle Scraper'
