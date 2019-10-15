@@ -161,11 +161,11 @@ def _dealer_cell_format(workbook, worksheet, num_rows):
     DEALER_SHEET_COND_FORMAT_1['format'] = workbook.add_format(CELL_FORMAT_1)
     DEALER_SHEET_COND_FORMAT_2['format'] = workbook.add_format(CELL_FORMAT_2)
 
-    worksheet.conditional_format(f'B2:B{num_rows}', DEALER_SHEET_COND_FORMAT_1)
-    worksheet.conditional_format(f'B2:B{num_rows}', DEALER_SHEET_COND_FORMAT_2)
+    worksheet.conditional_format('B2:B{}'.format(num_rows), DEALER_SHEET_COND_FORMAT_1)
+    worksheet.conditional_format('B2:B{}'.format(num_rows), DEALER_SHEET_COND_FORMAT_2)
 
-    worksheet.conditional_format(f'C2:B{num_rows}', DEALER_SHEET_COND_FORMAT_1)
-    worksheet.conditional_format(f'C2:B{num_rows}', DEALER_SHEET_COND_FORMAT_2)
+    worksheet.conditional_format('C2:B{}'.format(num_rows), DEALER_SHEET_COND_FORMAT_1)
+    worksheet.conditional_format('C2:B{}'.format(num_rows), DEALER_SHEET_COND_FORMAT_2)
 
 
 def _manufacturer_cell_format(workbook, worksheet, num_rows):
@@ -174,14 +174,14 @@ def _manufacturer_cell_format(workbook, worksheet, num_rows):
     MANUFACTURER_SHEET_COND_FORMAT_1['format'] = workbook.add_format(CELL_FORMAT_1)
     MANUFACTURER_SHEET_COND_FORMAT_2['format'] = workbook.add_format(CELL_FORMAT_2)
 
-    worksheet.conditional_format(f'B2:B{str(num_rows)}', MANUFACTURER_SHEET_COND_FORMAT_1)
-    worksheet.conditional_format(f'B2:B{str(num_rows)}', MANUFACTURER_SHEET_COND_FORMAT_2)
+    worksheet.conditional_format('B2:B{}'.format(num_rows), MANUFACTURER_SHEET_COND_FORMAT_1)
+    worksheet.conditional_format('B2:B{}'.format(num_rows), MANUFACTURER_SHEET_COND_FORMAT_2)
 
-    worksheet.conditional_format(f'C2:B{str(num_rows)}', MANUFACTURER_SHEET_COND_FORMAT_1)
-    worksheet.conditional_format(f'C2:B{str(num_rows)}', MANUFACTURER_SHEET_COND_FORMAT_2)
+    worksheet.conditional_format('C2:B{}'.format(num_rows), MANUFACTURER_SHEET_COND_FORMAT_1)
+    worksheet.conditional_format('C2:B{}'.format(num_rows), MANUFACTURER_SHEET_COND_FORMAT_2)
 
-    worksheet.conditional_format(f'D2:B{str(num_rows)}', MANUFACTURER_SHEET_COND_FORMAT_1)
-    worksheet.conditional_format(f'D2:B{str(num_rows)}', MANUFACTURER_SHEET_COND_FORMAT_2)
+    worksheet.conditional_format('D2:B{}'.format(num_rows), MANUFACTURER_SHEET_COND_FORMAT_1)
+    worksheet.conditional_format('D2:B{}'.format(num_rows), MANUFACTURER_SHEET_COND_FORMAT_2)
 
-    worksheet.conditional_format(f'E2:B{str(num_rows)}', MANUFACTURER_SHEET_COND_FORMAT_1)
-    worksheet.conditional_format(f'E2:B{str(num_rows)}', MANUFACTURER_SHEET_COND_FORMAT_2)
+    worksheet.conditional_format('E2:B{}'.format(num_rows), MANUFACTURER_SHEET_COND_FORMAT_1)
+    worksheet.conditional_format('E2:B{}'.format(num_rows), MANUFACTURER_SHEET_COND_FORMAT_2)

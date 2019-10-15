@@ -45,7 +45,7 @@ def _get_cars_com_response(url):
             return json.loads(val[val.index('CARS.digitalData = ') + len('CARS.digitalData = '):][:-1])
         except ValueError:
             pass
-    raise ValueError(f'CARS.digitalData was not found in `_get_cars_com_response()`, url: {url}')
+    raise ValueError('CARS.digitalData was not found in `_get_cars_com_response()`, url: {}'.format(url))
 
 
 def _get_vehicle(vehicle_info):

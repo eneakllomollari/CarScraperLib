@@ -9,7 +9,7 @@ from ..consts import DATE_FORMAT
 
 def send_email_with_traceback_info(sender, receivers):
     msg = MIMEText(_get_msg_body())
-    msg['Subject'] = f'[PHEV Vehicle Scraper ALERT] {datetime.datetime.now().strftime(DATE_FORMAT)}!'
+    msg['Subject'] = '[PHEV Vehicle Scraper ALERT] {}!'.format(datetime.datetime.now().strftime(DATE_FORMAT))
     msg['From'] = 'PHEV Vehicle Scraper'
     msg['To'] = 'PHEV Vehicle Scraper'
 

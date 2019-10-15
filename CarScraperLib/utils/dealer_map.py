@@ -22,7 +22,7 @@ def build_map(master_table_loc, dealers_geolocation_loc, dealer_map_loc, gcp_api
             folium.Marker(lat_lng, popup=name).add_to(dealers_map)
         dealers_map.save(dealer_map_loc)
     except AttributeError:
-        raise AttributeError(f'`{dealers_geolocation_loc}` is empty or corrupted')
+        raise AttributeError('`{}` is empty or corrupted'.format(dealers_geolocation_loc))
 
 
 def _get_dict_dealers(dealers_geolocation_loc):
@@ -44,11 +44,11 @@ def _calc_dealer_geolocation(master_table_loc, dealer_geolocation, dealer_dict, 
                 lat, lng = _get_geolocation(gcp_api_key, dealer_address)
                 dealer_dict[dealer_name] = [lat, lng]
             except IndexError as _:
-                print(f'Geolocation error for dealer: "{dealer_name}" with address: "{dealer_address}"')
+                print('Geolocation error for dealer: "{}" with address: "{}"'.format(dealer_name, dealer_address))
     with open(dealer_geolocation, 'w') as my_csv_file:
         my_csv_file.write('Dealer,Lat,Lng\n')
         for name, address in dealer_dict.items():
-            my_csv_file.write(f'{name.replace(",", ";")},{address[0]},{address[1]}\n')
+            my_csv_file.write('{},{},{}\n'.format(name.replace(",", ";"), address[0], address[1]))
 
 
 def _get_geolocation(gcp_api_key, address):
