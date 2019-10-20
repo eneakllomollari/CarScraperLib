@@ -4,10 +4,9 @@ import requests
 from bs4 import BeautifulSoup
 
 from ..classes import Vehicle, Dealer
-from ..consts import VIN, LISTING_ID, MAKE, MODEL, TRIM, BODY_STYLE, YEAR, PRICE, MILEAGE, \
-    CARS_COM_VEHICLE_HREF_FORMAT, \
-    NOT_APPLICABLE, NAME, PHONE_NUMBER, STREET_ADDRESS, CITY, STATE, DEALER_ADDRESS_FORMAT, RATING, REVIEW_COUNT, \
-    DEALER_RATING_FORMAT, SELLER, PAGE, VEHICLE, TOTAL_NUM_PAGES, CARS_COM_SEARCH_URL, SEARCH, LISTINGS_PER_PAGE
+from ..consts import VIN, LISTING_ID, MAKE, MODEL, TRIM, BODY_STYLE, YEAR, PRICE, MILEAGE, NOT_APPLICABLE, NAME, \
+    CARS_COM_VEHICLE_HREF_FORMAT, PHONE_NUMBER, STREET_ADDRESS, CITY, STATE, DEALER_ADDRESS_FORMAT, RATING, VEHICLE, \
+    REVIEW_COUNT, DEALER_RATING_FORMAT, SELLER, PAGE, TOTAL_NUM_PAGES, CARS_COM_SEARCH_URL, SEARCH, LISTINGS_PER_PAGE
 
 
 def scrape_and_get_vehicle_list(zip_code, search_radius, target_state):
@@ -30,11 +29,10 @@ def _scrape_and_get_cars_com_vehicles(url, target_state):
 
 
 def _get_list_cars_com_vehicles(url, target_state):
-    resp = _get_cars_com_response(url)[PAGE][VEHICLE]
     cars_list = []
-    for vehicle in resp:
+    for vehicle in _get_cars_com_response(url)[PAGE][VEHICLE]:
         if vehicle[SELLER][STATE] == target_state and all((vehicle[VIN], vehicle[LISTING_ID])):
-            cars_list.append(_get_vehicle(vehicle))
+            cars_list.append(_get_vehicle_object(vehicle))
     return cars_list
 
 
@@ -48,7 +46,7 @@ def _get_cars_com_response(url):
     raise ValueError('CARS.digitalData was not found in `_get_cars_com_response()`, url: {}'.format(url))
 
 
-def _get_vehicle(vehicle_info):
+def _get_vehicle_object(vehicle_info):
     seller_info = vehicle_info[SELLER]
     return Vehicle(
         listing_id=vehicle_info[LISTING_ID],
