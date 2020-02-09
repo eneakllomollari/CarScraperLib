@@ -1,0 +1,10 @@
+beautifulsoup4>=4.8.2
+folium>=0.10.1
+pandas>=1.0.1
+requests>=2.22.0
+xlrd>=1.2.0
+XlsxWriter>=1.2.7
+PyYaml>=5.3
+flake8>=3.7.9
+slackclient>=2.5.0
+address-parser>=1.0.0
