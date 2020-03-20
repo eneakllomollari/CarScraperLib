@@ -2,12 +2,11 @@ import json
 
 import requests
 from hamcrest import assert_that, equal_to, any_of
-from requests.auth import HTTPBasicAuth
 
 
 class API:
     def __init__(self, username, password):
-        self.auth = HTTPBasicAuth(username, password)
+        self.auth = (username, password)
         self.app = f'http://pscraper.herokuapp.com/pscraper'
 
     # ===== GET =====
