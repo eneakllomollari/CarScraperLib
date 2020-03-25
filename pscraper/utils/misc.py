@@ -8,14 +8,6 @@ import requests
 from slack import WebClient
 
 
-def get_traceback():
-    exc_type, exc_value, exc_traceback = exc_info()
-    text = '=' * 80 + '\n'
-    for val in format_exception(exc_type, exc_value, exc_traceback):
-        text += val
-    return '=' * 80 + '\n'
-
-
 def send_slack_message(**kwargs):
     """ Sends a message in Slack. If only one argument is provided (channel) is provided it sends traceback information
     for debugging. You need to set the `SLACK_API_TOKEN` environment variable to your slack workspace API token
@@ -24,7 +16,7 @@ def send_slack_message(**kwargs):
         kwargs: Keyword arguments to be used as payload for WebClient
     """
     if len(kwargs) == 1:
-        kwargs.update({'text': get_traceback()})
+        kwargs.update({'text': f'```{get_traceback()}```'})
     client = WebClient(token=environ['SLACK_API_TOKEN'])
     client.chat_postMessage(**kwargs)
 
@@ -64,3 +56,12 @@ def measure_time(func):
         return round(end_time - start_time, 4), retval
 
     return wrapper
+
+
+def get_traceback():
+    """
+    Get formatted traceback information after exception
+    Returns:
+        text(str): Traceback text
+    """
+    return ''.join([str(val) for val in format_exception(*exc_info())])
