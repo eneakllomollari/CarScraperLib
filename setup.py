@@ -1,6 +1,6 @@
-from os.path import join, abspath, dirname
+from os.path import abspath, dirname, join
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open(join(abspath(dirname(__file__)), 'README.md'), encoding='utf-8') as fd:
     long_description = fd.read()

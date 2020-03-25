@@ -1,7 +1,7 @@
 import json
 
 import requests
-from hamcrest import assert_that, equal_to, any_of
+from hamcrest import any_of, assert_that, equal_to
 
 
 class API:
