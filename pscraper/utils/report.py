@@ -5,7 +5,7 @@ from socket import gethostname
 from .misc import send_slack_message
 
 
-def post_daily_slack_report(cars_et, cars_total, at_total, at_et, cm_total, cm_et, channel='#daily-job'):
+def post_daily_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_total, channel='#daily-job'):
     """
     Post scraping report on slack channel `#daily-job`. You need to set the `SLACK_API_TOKEN` environment variable
     to your slack workspace API token. Uses `utils.misc.send_slack_message`.

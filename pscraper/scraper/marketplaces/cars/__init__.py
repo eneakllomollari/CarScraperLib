@@ -3,11 +3,13 @@ import json
 import requests
 from bs4 import BeautifulSoup
 
-from .consts import PAGE, SEARCH, TOTAL_NUM_PAGES, CARS_COM_QUERY
-from ..consts import VEHICLE, SELLER, STATE, VIN, LISTING_ID
+from pscraper.utils.misc import measure_time
+from .consts import CARS_COM_QUERY, PAGE, SEARCH, TOTAL_NUM_PAGES
+from ..consts import LISTING_ID, SELLER, STATE, VEHICLE, VIN
 from ..helpers import update_seller_id, update_vehicle
 
 
+@measure_time
 def scrape_cars(zip_code, search_radius, target_states, api):
     """ Scrape EV data from cars.com filtering with the specified parameters
 

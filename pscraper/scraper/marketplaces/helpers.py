@@ -1,10 +1,10 @@
 import datetime
 
-from hamcrest import assert_that, has_length, any_of
+from hamcrest import any_of, assert_that, has_length
 
-from pscraper.utils import get_geolocation
-from .consts import SELLER, STATE, VIN, LISTING_ID, NAME, MAKE, MODEL, PRICE, CITY, \
-    PHONE_NUMBER, STREET_ADDRESS, BODY_STYLE, TRIM, MILEAGE, YEAR, DATE_FORMAT
+from pscraper.utils.misc import get_geolocation
+from .consts import BODY_STYLE, CITY, DATE_FORMAT, LISTING_ID, MAKE, MILEAGE, MODEL, NAME, PHONE_NUMBER, PRICE, \
+    SELLER, STATE, STREET_ADDRESS, TRIM, VIN, YEAR
 
 
 def update_vehicle(vehicle, api):
@@ -14,7 +14,7 @@ def update_vehicle(vehicle, api):
 
     Args:
         vehicle (dict): vehicle to be created/updated
-        api (pscraper.api.API): Pscraper api, that allows retrieval/creation of sellers
+        api (pscraper.api.API): Pscraper api, that allows retrieval/creation of marketplaces
     """
     db_vehicles = api.vehicle_get(vin=vehicle[VIN], listing_id=vehicle[LISTING_ID],
                                   make=vehicle[MAKE], model=vehicle[MODEL])
@@ -56,7 +56,7 @@ def update_seller_id(vehicle, api):
 
     Args:
         vehicle (dict): Vehicle's whose seller id needs to be updates
-        api (pscraper.api.API): Pscraper api, that allows retrieval/creation of sellers
+        api (pscraper.api.API): Pscraper api, that allows retrieval/creation of marketplaces
     """
     seller = vehicle[SELLER]
     db_sellers_phone = api.seller_get(phone_number=seller[PHONE_NUMBER])
