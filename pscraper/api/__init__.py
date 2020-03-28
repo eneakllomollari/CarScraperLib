@@ -1,45 +1,27 @@
-import json
-
-import requests
-from hamcrest import any_of, assert_that, equal_to
+from pscraper.utils.base_api import BaseAPI
 
 
-class API:
+class API(BaseAPI):
     def __init__(self, username, password):
-        self.auth = (username, password)
-        self.app = f'http://pscraper.herokuapp.com/pscraper'
+        super().__init__(f'http://pscraper.herokuapp.com/pscraper/', (username, password))
 
     # ===== GET =====
     def seller_get(self, **kwargs):
-        resp = requests.get(f'{self.app}/seller/', params=kwargs, auth=self.auth)
-        assert_that(resp.status_code, equal_to(200), resp.content)
-        return json.loads(resp.content)
+        return self.get_request('seller/', params=kwargs)
 
     def vehicle_get(self, **kwargs):
-        resp = requests.get(f'{self.app}/vehicle/', params=kwargs, auth=self.auth)
-        assert_that(resp.status_code, equal_to(200), resp.content)
-        return json.loads(resp.content)
+        return self.get_request('vehicle/', params=kwargs)
 
     # ===== PUT =====
     def seller_put(self, seller):
-        resp = requests.put(f'{self.app}/seller/', data=seller, auth=self.auth)
-        assert_that(resp.status_code, any_of(201, 409), resp.content)
-        return json.loads(resp.content)
+        return self.put_request('seller/', data=seller)
 
     def vehicle_put(self, vehicle):
-        resp = requests.put(f'{self.app}/vehicle/', data=vehicle, auth=self.auth)
-        assert_that(resp.status_code, any_of(201, 409), resp.content)
-        return json.loads(resp.content)
+        return self.put_request('vehicle/', data=vehicle)
 
     # ===== PATCH =====
     def seller_patch(self, primary_key, **kwargs):
-        params = {'id': primary_key}
-        resp = requests.patch(f'{self.app}/seller/', params=params, data=kwargs, auth=self.auth)
-        assert_that(resp.status_code, equal_to(200), resp.content)
-        return json.loads(resp.content)
+        return self.patch_request('seller/', params={'id': primary_key}, data=kwargs)
 
     def vehicle_patch(self, primary_key, **kwargs):
-        params = {'id': primary_key}
-        resp = requests.patch(f'{self.app}/vehicle/', params=params, data=kwargs, auth=self.auth)
-        assert_that(resp.status_code, equal_to(200), resp.content)
-        return json.loads(resp.content)
+        return self.patch_request('vehicle/', params={'id': primary_key}, data=kwargs)
