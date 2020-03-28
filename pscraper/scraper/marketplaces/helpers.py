@@ -1,81 +1,80 @@
-import datetime
+from datetime import datetime
 
 from hamcrest import any_of, assert_that, has_length
 
 from pscraper.utils.misc import get_geolocation
-from .consts import BODY_STYLE, CITY, DATE_FORMAT, LISTING_ID, MAKE, MILEAGE, MODEL, NAME, PHONE_NUMBER, PRICE, \
-    SELLER, STATE, STREET_ADDRESS, TRIM, VIN, YEAR
+from .consts import BODY_STYLE, CITY, CURR_DATE, DATE_FMT, LISTING_ID, MAKE, MILEAGE, MODEL, NAME, PHONE_NUMBER, \
+    PRICE, STATE, STREET_ADDRESS, TRIM, VIN, YEAR
 
 
 def update_vehicle(vehicle, api):
     """
-    Update vehicle's last date and duration if it exists in the database,
-    create a new vehicle if it doesn't
-
+    Updates vehicle's last date and duration if it exists in the database, creates a new vehicle if it doesn't.
+    Updates vehicle's price if a change is found from the existing price.
     Args:
         vehicle (dict): vehicle to be created/updated
         api (pscraper.api.API): Pscraper api, that allows retrieval/creation of marketplaces
     """
-    db_vehicles = api.vehicle_get(vin=vehicle[VIN], listing_id=vehicle[LISTING_ID],
-                                  make=vehicle[MAKE], model=vehicle[MODEL])
-    assert_that(db_vehicles, has_length(any_of(0, 1)))
-    curr_date = datetime.datetime.now().strftime(DATE_FORMAT)
+    db_vehicles = api.vehicle_get(vin=vehicle[VIN], listing_id=vehicle[LISTING_ID], make=vehicle[MAKE],
+                                  model=vehicle[MODEL])
+    assert_that(db_vehicles, has_length(any_of(0, 1)), db_vehicles)
     if len(db_vehicles) == 1:
         db_vehicle = db_vehicles[0]
-        duration = datetime.datetime.strptime(curr_date, DATE_FORMAT) - datetime.datetime.strptime(
-            db_vehicle['first_date'], DATE_FORMAT)
+        get_date = datetime.strptime
         payload = {
-            'last_date': curr_date,
-            'duration': duration.days
+            'last_date': CURR_DATE,
+            'duration': (get_date(CURR_DATE, DATE_FMT) - get_date(db_vehicle['first_date'], DATE_FMT)).days
         }
         if db_vehicle['price'] != vehicle[PRICE]:
             payload.update({'price': vehicle[PRICE]})
         api.vehicle_patch(db_vehicle['id'], **payload)
     else:
         payload = {
-            'first_date': curr_date,
-            'last_date': curr_date,
+            'first_date': CURR_DATE,
+            'last_date': CURR_DATE,
             'duration': 0,
             'listing_id': vehicle[LISTING_ID],
             'body_style': vehicle[BODY_STYLE],
             'vin': vehicle[VIN],
             'make': vehicle[MAKE],
-            'price': vehicle[PRICE] or 0,
+            'price': vehicle[PRICE],
             'model': vehicle[MODEL],
             'trim': vehicle[TRIM],
             'mileage': vehicle[MILEAGE],
             'year': vehicle[YEAR],
-            'seller_id': vehicle['seller_id'],
+            'seller_id': get_seller_id(vehicle, api),
         }
         api.vehicle_put(payload)
 
 
-def update_seller_id(vehicle, api):
+def get_seller_id(seller, api):
     """
-    Update `vehicle[SELLER_ID]`. Creates a new seller if seller is not in the database
+    Returns a seller id (primary_key). Search for existing seller by phone number and name.
+    If not found creates a new creates a new seller and returns it's id
 
     Args:
-        vehicle (dict): Vehicle's whose seller id needs to be updates
+        seller(dict): Seller that needs to be created or updated
         api (pscraper.api.API): Pscraper api, that allows retrieval/creation of marketplaces
     """
-    seller = vehicle[SELLER]
+    # Search the seller by phone number
     db_sellers_phone = api.seller_get(phone_number=seller[PHONE_NUMBER])
-    db_sellers_name = api.seller_get(name=seller[NAME])
-    assert_that(db_sellers_phone, has_length(any_of(0, 1)))
-    assert_that(db_sellers_name, has_length(any_of(0, 1)))
     if len(db_sellers_phone) == 1:
-        vehicle['seller_id'] = db_sellers_phone[0]['id']
-    elif len(db_sellers_name) == 1:
-        vehicle['seller_id'] = db_sellers_name[0]['id']
-    else:
-        address = f'{seller[STREET_ADDRESS]}, {seller[CITY]}, {seller[STATE]}'
-        latitude, longitude = get_geolocation(address)
-        payload = {
-            'phone_number': seller[PHONE_NUMBER],
-            'name': seller[NAME],
-            'address': address,
-            'latitude': latitude,
-            'longitude': longitude
-        }
-        new_seller = api.seller_put(payload)
-        vehicle['seller_id'] = new_seller['id']
+        return db_sellers_phone[0]['id']
+
+    # Search the seller by name
+    db_sellers_name = api.seller_get(name=seller[NAME])
+    if len(db_sellers_name) == 1:
+        return db_sellers_name[0]['id']
+
+    # Seller not found, create a new one
+    address = f'{seller[STREET_ADDRESS]}, {seller[CITY]}, {seller[STATE]}'
+    latitude, longitude = get_geolocation(address)
+    payload = {
+        'phone_number': seller[PHONE_NUMBER],
+        'name': seller[NAME],
+        'address': address,
+        'latitude': latitude,
+        'longitude': longitude
+    }
+    new_seller = api.seller_put(payload)
+    return new_seller['id']

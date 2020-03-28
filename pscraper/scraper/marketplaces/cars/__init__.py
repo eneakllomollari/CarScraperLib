@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from pscraper.utils.misc import measure_time
 from .consts import CARS_COM_QUERY, PAGE, SEARCH, TOTAL_NUM_PAGES
 from ..consts import LISTING_ID, SELLER, STATE, VEHICLE, VIN
-from ..helpers import update_seller_id, update_vehicle
+from ..helpers import update_vehicle
 
 
 @measure_time
@@ -17,7 +17,7 @@ def scrape_cars(zip_code, search_radius, target_states, api):
         zip_code (str): The zip code to perform the search in
         search_radius (str): The search radius for the specified zip code
         target_states (list): The states to search in (i.e. ```['CA', 'NV']```)
-        api (pscraper.api.API): Pscraper API to communicate with the DB
+        api (pscraper.api.API): Pscraper API to communicate with the backend
 
     Returns:
         total (int): Total number of cars scraped
@@ -29,7 +29,6 @@ def scrape_cars(zip_code, search_radius, target_states, api):
         vehicles = _get_cars_com_response(url.format(i))[PAGE][VEHICLE]
         for vehicle in vehicles:
             if vehicle[SELLER][STATE] in target_states and all((vehicle[VIN], vehicle[LISTING_ID])):
-                update_seller_id(vehicle, api)
                 update_vehicle(vehicle, api)
                 total += 1
     return total
