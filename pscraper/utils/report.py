@@ -20,7 +20,7 @@ def post_daily_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_tota
         channel: Slack channel to send the report to, default: `#daily-job`
     """
     success, soon = ':heavy_check_mark:', ':interrobang:'
-    line = '{}{}\t\t\t\t\t\t`{}` vehicles in `{}` seconds'
+    line = '{}{}\t\t\t`{}` vehicles in `{}` seconds'
     blocks = [
         {
             'type': 'divider'
