@@ -38,7 +38,9 @@ def get_geolocation(address):
     try:
         return resp['results'][0]['geometry']['location']['lat'], \
                resp['results'][0]['geometry']['location']['lng']
-    except KeyError:
+    except (KeyError, IndexError):
+        send_slack_message(channel='#errors', text=f'```Error locating address: "{address}"\n'
+                                                   f'Response:\n{resp}\n\n{get_traceback()}```')
         return None, None
 
 
