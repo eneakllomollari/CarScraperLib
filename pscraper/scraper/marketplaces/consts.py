@@ -2,6 +2,7 @@ from datetime import datetime
 
 DATE_FMT = '%Y-%m-%d'
 CURR_DATE = datetime.now().strftime(DATE_FMT)
+ADDRESS_FORMAT = '{}, {}, {}'
 MAKE = 'make'
 MODEL = 'model'
 TRIM = 'trim'

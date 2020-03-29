@@ -2,26 +2,27 @@ from pscraper.utils.base_api import BaseAPI
 
 
 class API(BaseAPI):
-    def __init__(self, username, password):
-        super().__init__(f'http://pscraper.herokuapp.com/pscraper/', (username, password))
+    def __init__(self, username, password, localhost=False):
+        url = 'http://pscraper.herokuapp.com/pscraper/' if not localhost else 'http://localhost:8000/pscraper/'
+        super().__init__(url, (username, password))
 
     # ===== GET =====
     def seller_get(self, **kwargs):
-        return self.get_request('seller/', params=kwargs)
+        return self.get_request('seller/', data=kwargs)
 
     def vehicle_get(self, **kwargs):
-        return self.get_request('vehicle/', params=kwargs)
+        return self.get_request('vehicle/', data=kwargs)
 
-    # ===== PUT =====
-    def seller_put(self, seller):
-        return self.put_request('seller/', data=seller)
+    # ===== POST =====
+    def seller_post(self, **kwargs):
+        return self.post_request('seller/', data=kwargs)
 
-    def vehicle_put(self, vehicle):
-        return self.put_request('vehicle/', data=vehicle)
+    def vehicle_post(self, **kwargs):
+        return self.post_request('vehicle/', data=kwargs)
 
     # ===== PATCH =====
-    def seller_patch(self, primary_key, **kwargs):
-        return self.patch_request('seller/', params={'id': primary_key}, data=kwargs)
+    def seller_patch(self, **kwargs):
+        return self.patch_request('seller/', data=kwargs)
 
-    def vehicle_patch(self, primary_key, **kwargs):
-        return self.patch_request('vehicle/', params={'id': primary_key}, data=kwargs)
+    def vehicle_patch(self, **kwargs):
+        return self.patch_request('vehicle/', data=kwargs)

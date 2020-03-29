@@ -9,8 +9,9 @@ from slack import WebClient
 
 
 def send_slack_message(**kwargs):
-    """ Sends a message in Slack. If only one argument is provided (channel) is provided it sends traceback information
-    for debugging. You need to set the `SLACK_API_TOKEN` environment variable to your slack workspace API token
+    """ Sends a message in Slack. If only one argument is provided (channel) it sends traceback information about
+    the most recent exception. You need to set the `SLACK_API_TOKEN` environment variable of your slack workspace
+     API token
 
     Args:
         kwargs: Keyword arguments to be used as payload for WebClient

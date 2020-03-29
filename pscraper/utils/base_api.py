@@ -13,7 +13,7 @@ def request_wrapper(method, success_codes):
             resp = func(self, url, *args, **kwargs)
             assertion_method = is_in if type(success_codes) is list else equal_to
             assert_that(resp.status_code, assertion_method(success_codes),
-                        f'{method} {url} failed with status code: {resp.status_code}\n{resp.content}')
+                        f'{method} {url} failed with status code: {resp.status_code}\n{resp.content}\n{args}{kwargs}')
             return json.loads(resp.content)
         return wrapper
     return decorator
@@ -28,13 +28,13 @@ class BaseAPI(object):
         return url if 'http' in url else f'{self.base_url}{url}'
 
     @request_wrapper('GET', 200)
-    def get_request(self, url, params):
-        return requests.get(url, params=params, auth=self.auth)
+    def get_request(self, url, data):
+        return requests.get(url, data=data, auth=self.auth)
 
-    @request_wrapper('PUT', [201, 409])
-    def put_request(self, url, data):
-        return requests.put(url, data=data, auth=self.auth)
+    @request_wrapper('POST', [201, 409])
+    def post_request(self, url, data):
+        return requests.post(url, data=data, auth=self.auth)
 
     @request_wrapper('PATCH', 200)
-    def patch_request(self, url, params, data):
-        return requests.patch(url, params=params, data=data, auth=self.auth)
+    def patch_request(self, url, data):
+        return requests.patch(url, data=data, auth=self.auth)
