@@ -2,11 +2,12 @@ import json
 
 import requests
 from bs4 import BeautifulSoup
+from hamcrest import assert_that, is_in
 
 from pscraper.utils.misc import measure_time
-from .consts import CARS_COM_QUERY, PAGE, SEARCH, TOTAL_NUM_PAGES
+from .consts import ALLOWED_RD, CARS_COM_QUERY, PAGE, SEARCH, TOTAL_NUM_PAGES
 from ..consts import LISTING_ID, PHONE_NUMBER, SELLER, STATE, VEHICLE, VIN
-from ..helpers import update_vehicle
+from ..helpers import update_vehicle, validate_states
 
 
 @measure_time
@@ -22,6 +23,9 @@ def scrape_cars(zip_code, search_radius, target_states, api):
     Returns:
         total (int): Total number of cars scraped
     """
+    assert_that(search_radius, is_in(ALLOWED_RD))
+    validate_states(target_states)
+
     url = CARS_COM_QUERY.format('{}', search_radius, zip_code)
     total = 0
     num_pages = _get_cars_com_response(url.format(1))[PAGE][SEARCH][TOTAL_NUM_PAGES]
