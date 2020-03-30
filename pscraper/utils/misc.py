@@ -35,13 +35,12 @@ def get_geolocation(address):
     google_maps_query = f'https://maps.googleapis.com/maps/api/geocode/json?' \
                         f'address={address}&key={environ["GCP_API_TOKEN"]}'
     resp = requests.get(google_maps_query).json()
-    try:
-        return resp['results'][0]['geometry']['location']['lat'], \
-               resp['results'][0]['geometry']['location']['lng']
-    except (KeyError, IndexError):
-        send_slack_message(channel='#errors', text=f'```Error locating address: "{address}"\n'
-                                                   f'Response:\n{resp}\n\n{get_traceback()}```')
+    if resp['status'] != 'OK':
+        req = google_maps_query.split("&key")[0]
+        text = f'```Error locating address: "{address}"\n\nRequest: {req}\n\nResponse: {resp}```'
+        send_slack_message(channel='#errors', text=text)
         return None, None
+    return resp['results'][0]['geometry']['location']['lat'], resp['results'][0]['geometry']['location']['lng']
 
 
 def measure_time(func):
