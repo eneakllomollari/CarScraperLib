@@ -1,15 +1,22 @@
 # Pscraper Changelog
 
+## v1.0.4
+* Add multi threading for `update_vehicle`
+* Report api errors from base api decorator
+* Check google maps api `status_code` before accessing the results
+* Don't post message on slack after scraping is complete, let the scraping-tool handle it 
+* Update slack report format, add `states`
+
 ## v1.0.3
 * Add validation for target_states
 * Add validation for radius in cars.com
 * Modify cars.com search query to have local only dealers
 
 ## v1.0.2
-- Add error handling when seller geolocation can't be found by Google Maps API
+* Add error handling when seller geolocation can't be found by Google Maps API
 
 ## v1.0.1
-- Add filter to skip vehicle's whose seller does not have a phone number
+* Add filter to skip vehicle's whose seller does not have a phone number
 
 ## v1.0.0
-- Initial Release
+* Initial Release
