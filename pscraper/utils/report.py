@@ -5,7 +5,7 @@ from socket import gethostname
 from .misc import send_slack_message
 
 
-def post_daily_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_total, channel='#daily-job'):
+def post_daily_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_total, states, channel='#daily-job'):
     """
     Post scraping report on slack channel `#daily-job`. You need to set the `SLACK_API_TOKEN` environment variable
     to your slack workspace API token. Uses `utils.misc.send_slack_message`.
@@ -17,22 +17,21 @@ def post_daily_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_tota
         at_et: Number of vehicles scraped from autotrader
         cm_total: Time in seconds it took to scrape carmax
         cm_et: Number of vehicles scraped from carmax
+        states: Scraped states to include in the report
         channel: Slack channel to send the report to, default: `#daily-job`
     """
     success, soon = ':heavy_check_mark:', ':interrobang:'
-    line = '{}{}\t\t\t`{}` vehicles in `{}` seconds'
+    line = '{}{}\t\t`{}` vehicles in `{}` sec'
+    carmax_link = '<https://www.carmax.com/|CarMax>'
+    autotrader_link = '<https://www.autotrader.com/|Autotrader>'
+    cars_com_link = '<https://www.cars.com/|Cars.com>'
+    states = states if states != 'ALL' else 'All States'
     blocks = [
-        {
-            'type': 'divider'
-        },
-        {
-            'type': 'divider'
-        },
         {
             'type': 'section',
             'text': {
                 'type': 'mrkdwn',
-                'text': f':electric_plug:\t*{datetime.datetime.now().date()} - Scraper Report*\t:electric_plug:'
+                'text': f'*Scraper Report* _{datetime.datetime.now().date()}_'
             }
         },
         {
@@ -43,11 +42,15 @@ def post_daily_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_tota
             'fields': [
                 {
                     'type': 'mrkdwn',
-                    'text': f':car:*Total Vehicles:*\t{cars_total + at_total + cm_total}'
+                    'text': f'*Total Vehicles:*\t{cars_total + at_total + cm_total}'
                 },
                 {
                     'type': 'mrkdwn',
-                    'text': f':timer_clock:*Total Time*:\t{cars_et + at_et + cm_et} sec'
+                    'text': f'*Total Time*:\t{cars_et + at_et + cm_et} sec'
+                },
+                {
+                    'type': 'mrkdwn',
+                    'text': f'*States*:\t{states}'
                 }
             ]
         },
@@ -58,14 +61,14 @@ def post_daily_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_tota
             'type': 'section',
             'text': {
                 'type': 'mrkdwn',
-                'text': line.format(success if cars_total > 0 else soon, '<cars.com|Cars.com>\t  ', cars_total, cars_et)
+                'text': line.format(success if cars_total > 0 else soon, f'{cars_com_link}   ', cars_total, cars_et)
             }
         },
         {
             'type': 'section',
             'text': {
                 'type': 'mrkdwn',
-                'text': line.format(success if at_total > 0 else soon, '<autotrader.com|Autotrader>   ', at_total,
+                'text': line.format(success if at_total > 0 else soon, f'{autotrader_link}', at_total,
                                     at_et)
             }
         },
@@ -73,7 +76,7 @@ def post_daily_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_tota
             'type': 'section',
             'text': {
                 'type': 'mrkdwn',
-                'text': line.format(success if cm_total > 0 else soon, '<carmax.com|CarMax>\t\t', cm_total, cm_et)
+                'text': line.format(success if cm_total > 0 else soon, f'{carmax_link}\t ', cm_total, cm_et)
             }
         },
         {
@@ -92,4 +95,4 @@ def post_daily_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_tota
             'type': 'divider'
         },
     ]
-    send_slack_message(channel=channel, blocks=blocks)
+    send_slack_message(channel=channel, blocks=blocks, text='Daily Report')

@@ -55,7 +55,7 @@ def measure_time(func):
         start_time = time.time()
         retval = func(*args, **kwargs)
         end_time = time.time()
-        return round(end_time - start_time, 4), retval
+        return round(end_time - start_time, 1), retval
 
     return wrapper
 
