@@ -86,5 +86,3 @@ def get_seller_id(vehicle, api):
     if new_seller == -1:
         return -1
     return new_seller['id']
-
-

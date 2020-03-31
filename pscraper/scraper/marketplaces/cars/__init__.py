@@ -1,5 +1,5 @@
 from pscraper.utils.misc import measure_time
-from .consts import ALLOWED_RD, CARS_COM_QUERY, PAGE, SEARCH, TOTAL_NUM_PAGES
+from .consts import CARS_COM_QUERY, PAGE, SEARCH, TOTAL_NUM_PAGES
 from .helpers import get_cars_com_response, validate_params
 from ..consts import LISTING_ID, PHONE_NUMBER, SELLER, STATE, VEHICLE, VIN
 from ..helpers import update_vehicle
