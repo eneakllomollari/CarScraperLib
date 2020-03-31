@@ -1,8 +1,9 @@
-import json
 from functools import wraps
 
 import requests
 from hamcrest import assert_that, equal_to, is_in
+
+from .misc import get_traceback, send_slack_message
 
 
 def request_wrapper(method, success_codes):
@@ -10,11 +11,17 @@ def request_wrapper(method, success_codes):
         @wraps(func)
         def wrapper(self, url, *args, **kwargs):
             url = self.get_full_url(url)
-            resp = func(self, url, *args, **kwargs)
-            assertion_method = is_in if type(success_codes) is list else equal_to
-            assert_that(resp.status_code, assertion_method(success_codes),
-                        f'{method} {url} failed with status code: {resp.status_code}\n{resp.content}\n{args}{kwargs}')
-            return json.loads(resp.content)
+            try:
+                resp = func(self, url, *args, **kwargs)
+                assert_func = is_in if type(success_codes) is list else equal_to
+                assert_that(resp.status_code, assert_func(success_codes), f'```{method} {url} failed with status code: '
+                                                                          f'{resp.status_code}\n'
+                                                                          f'Request: {args if args else ""}{kwargs}\n'
+                                                                          f'Response: {resp.json()}```')
+                return resp.json()
+            except (requests.exceptions.RequestException, AssertionError):
+                send_slack_message(channel='#errors', text=f'```{get_traceback()}```')
+            return -1
         return wrapper
     return decorator
 
