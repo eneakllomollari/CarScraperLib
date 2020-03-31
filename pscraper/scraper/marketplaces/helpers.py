@@ -1,10 +1,8 @@
 from datetime import datetime
 
-from hamcrest import assert_that, is_in
-
 from pscraper.utils.misc import get_geolocation, send_slack_message
 from .consts import ADDRESS_FORMAT, BODY_STYLE, CITY, CURR_DATE, DATE_FMT, LISTING_ID, MAKE, MILEAGE, MODEL, NAME, \
-    PHONE_NUMBER, PRICE, SELLER, STATE, STATES, STREET_ADDRESS, TRIM, VIN, YEAR
+    PHONE_NUMBER, PRICE, SELLER, STATE, STREET_ADDRESS, TRIM, VIN, YEAR
 
 
 def update_vehicle(vehicle, api):
@@ -16,7 +14,9 @@ def update_vehicle(vehicle, api):
         api (pscraper.api.API): Pscraper api, that allows retrieval/creation of marketplaces
     """
     db_vehicles = api.vehicle_get(vin=vehicle[VIN])
-    if len(db_vehicles) == 1:
+    if db_vehicles == -1:
+        return
+    elif len(db_vehicles) == 1:
         db_vehicle = db_vehicles[0]
         get_date = datetime.strptime
         payload = {
@@ -28,6 +28,9 @@ def update_vehicle(vehicle, api):
             payload.update({'price': vehicle[PRICE]})
         api.vehicle_patch(**payload)
     else:
+        seller_id = get_seller_id(vehicle, api)
+        if seller_id == -1:
+            return
         payload = {
             'first_date': CURR_DATE,
             'last_date': CURR_DATE,
@@ -41,7 +44,7 @@ def update_vehicle(vehicle, api):
             'trim': vehicle[TRIM],
             'mileage': vehicle[MILEAGE],
             'year': vehicle[YEAR],
-            'seller_id': get_seller_id(vehicle, api),
+            'seller_id': seller_id,
         }
         api.vehicle_post(**payload)
 
@@ -65,7 +68,9 @@ def get_seller_id(vehicle, api):
 
     # Search the seller by address
     db_seller = api.seller_get(address=address)
-    if len(db_seller) == 1:
+    if db_seller == -1:
+        return -1
+    elif len(db_seller) == 1:
         return db_seller[0]['id']
 
     # Seller not found, create a new one
@@ -78,14 +83,8 @@ def get_seller_id(vehicle, api):
         'longitude': longitude
     }
     new_seller = api.seller_post(**payload)
+    if new_seller == -1:
+        return -1
     return new_seller['id']
 
 
-def validate_states(target_states):
-    """
-    Validates that `target_states` are eligible states
-    Args:
-        target_states(list): states provided by the scraper
-    """
-    for state in target_states:
-        assert_that(state, is_in(STATES))
