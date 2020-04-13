@@ -35,9 +35,6 @@ def post_daily_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_tota
             }
         },
         {
-            'type': 'divider'
-        },
-        {
             'type': 'section',
             'fields': [
                 {
@@ -46,16 +43,13 @@ def post_daily_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_tota
                 },
                 {
                     'type': 'mrkdwn',
-                    'text': f'*Total Time*:\t{cars_et + at_et + cm_et} sec'
+                    'text': f'*Total Time*:\t{round(cars_et + at_et + cm_et, 2)} sec'
                 },
                 {
                     'type': 'mrkdwn',
                     'text': f'*States*:\t{states}'
                 }
             ]
-        },
-        {
-            'type': 'divider'
         },
         {
             'type': 'section',
@@ -87,9 +81,6 @@ def post_daily_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_tota
                     'text': f'{getuser()}@{gethostname()}',
                 }
             ]
-        },
-        {
-            'type': 'divider'
         },
         {
             'type': 'divider'
