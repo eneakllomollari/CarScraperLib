@@ -4,7 +4,6 @@ from os import environ
 from sys import exc_info
 from traceback import format_exception
 
-import requests
 from slack import WebClient
 
 
@@ -22,7 +21,7 @@ def send_slack_message(**kwargs):
     client.chat_postMessage(**kwargs)
 
 
-def get_geolocation(address):
+def get_geolocation(address, session):
     """ Finds latitude and longitude from a human readable address using Google Maps API.
     You need to set the environment variable `GCP_API_TOKEN` to your Google Maps API token
 
@@ -34,7 +33,7 @@ def get_geolocation(address):
     """
     google_maps_query = f'https://maps.googleapis.com/maps/api/geocode/json?' \
                         f'address={address}&key={environ["GCP_API_TOKEN"]}'
-    resp = requests.get(google_maps_query).json()
+    resp = session.get(google_maps_query).json()
     if resp['status'] != 'OK':
         req = google_maps_query.split("&key")[0]
         text = f'```Error locating address: "{address}"\n\nRequest: {req}\n\nResponse: {resp}```'

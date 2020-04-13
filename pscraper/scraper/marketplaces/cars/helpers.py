@@ -1,6 +1,5 @@
 import json
 
-import requests
 from bs4 import BeautifulSoup
 from hamcrest import assert_that, equal_to, is_in
 
@@ -8,9 +7,9 @@ from .consts import ALLOWED_RD
 from ..consts import STATES
 
 
-def get_cars_com_response(url):
+def get_cars_com_response(url, session):
     token = 'CARS.digitalData = '
-    for val in BeautifulSoup(requests.get(url).text, 'html.parser').find('head').find_all('script'):
+    for val in BeautifulSoup(session.get(url).text, 'html.parser').find('head').find_all('script'):
         val = val.text.strip()
         try:
             return json.loads(val[val.index(token) + len(token):][:-1])

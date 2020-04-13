@@ -2,6 +2,7 @@ from functools import wraps
 
 import requests
 from hamcrest import assert_that, equal_to, is_in
+from requests.sessions import Session
 
 from .misc import get_traceback, send_slack_message
 
@@ -29,19 +30,20 @@ def request_wrapper(method, success_codes):
 class BaseAPI(object):
     def __init__(self, base_url, auth):
         self.base_url = base_url
-        self.auth = auth
+        self.session = Session()
+        self.session.auth = auth
 
     def get_full_url(self, url):
         return url if 'http' in url else f'{self.base_url}{url}'
 
     @request_wrapper('GET', 200)
-    def get_request(self, url, data):
-        return requests.get(url, data=data, auth=self.auth)
+    def get_request(self, url, params):
+        return self.session.get(url, params=params)
 
     @request_wrapper('POST', [201, 409])
     def post_request(self, url, data):
-        return requests.post(url, data=data, auth=self.auth)
+        return self.session.post(url, data=data)
 
     @request_wrapper('PATCH', 200)
     def patch_request(self, url, data):
-        return requests.patch(url, data=data, auth=self.auth)
+        return self.session.patch(url, data=data)

@@ -1,3 +1,5 @@
+from requests.sessions import Session
+
 from pscraper.utils.misc import measure_time
 from .consts import CARS_COM_QUERY, PAGE, SEARCH, TOTAL_NUM_PAGES
 from .helpers import get_cars_com_response, validate_params
@@ -21,13 +23,14 @@ def scrape_cars(zip_code, search_radius, target_states, api):
     validate_params(search_radius, target_states)
     total = 0
     url = CARS_COM_QUERY.format('{}', search_radius, zip_code)
-    num_pages = get_cars_com_response(url.format(1))[PAGE][SEARCH][TOTAL_NUM_PAGES]
+    cars_session, google_maps_session = Session(), Session()
+    num_pages = get_cars_com_response(url.format(1), cars_session)[PAGE][SEARCH][TOTAL_NUM_PAGES]
     for i in range(num_pages):
-        vehicles = get_cars_com_response(url.format(i))[PAGE][VEHICLE]
+        vehicles = get_cars_com_response(url.format(i), cars_session)[PAGE][VEHICLE]
         for vehicle in vehicles:
             is_eligible_vehicle = all((vehicle[VIN], vehicle[LISTING_ID], vehicle[SELLER][PHONE_NUMBER]))
             is_target_state = vehicle[SELLER][STATE] in target_states or target_states == 'ALL'
             if is_eligible_vehicle and is_target_state:
-                update_vehicle(vehicle, api)
+                update_vehicle(vehicle, api, google_maps_session)
                 total += 1
     return total
