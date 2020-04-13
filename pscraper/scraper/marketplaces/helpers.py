@@ -50,7 +50,7 @@ def update_vehicle(vehicle, api, google_maps_session):
             'trim': vehicle[TRIM],
             'mileage': vehicle[MILEAGE],
             'year': vehicle[YEAR],
-            'seller_id': seller_id,
+            'seller': seller_id,
         }
         api.vehicle_post(**payload)
 
@@ -66,6 +66,13 @@ def get_seller_id(vehicle, api, session):
         api (pscraper.api.API): Pscraper api, that allows retrieval/creation of marketplaces
     """
     seller = vehicle[SELLER]
+
+    # Search the seller by phone_number
+    db_seller = api.seller_get(phone_number=seller[PHONE_NUMBER])
+    if db_seller == -1:
+        return -1
+    elif len(db_seller) == 1:
+        return db_seller[0]['id']
     try:
         address = ADDRESS_FORMAT.format(seller[STREET_ADDRESS], seller[CITY], seller[STATE])
     except KeyError:
@@ -73,14 +80,6 @@ def get_seller_id(vehicle, api, session):
         return -1
 
     latitude, longitude = get_geolocation(address, session)
-    db_seller = api.seller_get(address=address)
-    if db_seller == -1:
-        return -1
-    elif len(db_seller) == 1:
-        return db_seller[0]['id']
-
-    # Seller not found, create a new one
-    latitude, longitude = get_geolocation(address)
     payload = {
         'phone_number': seller[PHONE_NUMBER],
         'name': seller[NAME],
