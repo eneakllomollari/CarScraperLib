@@ -1,8 +1,11 @@
 from datetime import datetime
+from logging import getLogger
 
 from pscraper.utils.misc import get_geolocation, send_slack_message
 from .consts import ADDRESS_FORMAT, BODY_STYLE, CITY, CURR_DATE, DATE_FMT, LISTING_ID, MAKE, MILEAGE, MODEL, NAME, \
     PHONE_NUMBER, PRICE, SELLER, STATE, STREET_ADDRESS, TRIM, VIN, YEAR
+
+logger = getLogger(__name__)
 
 
 def update_vehicle(vehicle, api, google_maps_session):
@@ -12,13 +15,13 @@ def update_vehicle(vehicle, api, google_maps_session):
     Args:
         vehicle (dict): vehicle to be created/updated
         api (pscraper.api.API): Pscraper api, that allows retrieval/creation of marketplaces
+        google_maps_session (requests.sessions.Session): Google Maps Session to use for geolocating seller
     """
     seller_id = get_seller_id(vehicle, api, google_maps_session)
     if seller_id == -1:
         return
 
-    api.history_post(listing_id=vehicle[LISTING_ID], vin=vehicle[VIN], price=vehicle[PRICE], seller=seller_id,
-                     date=CURR_DATE)
+    api.history_post(vin=vehicle[VIN], price=vehicle[PRICE], seller=seller_id, date=CURR_DATE)
 
     db_vehicles = api.vehicle_get(vin=vehicle[VIN])
     if db_vehicles == -1:
@@ -42,11 +45,11 @@ def update_vehicle(vehicle, api, google_maps_session):
             'last_date': CURR_DATE,
             'duration': 0,
             'listing_id': vehicle[LISTING_ID],
-            'body_style': vehicle[BODY_STYLE],
             'vin': vehicle[VIN],
             'make': vehicle[MAKE],
-            'price': vehicle[PRICE],
             'model': vehicle[MODEL],
+            'body_style': vehicle[BODY_STYLE],
+            'price': vehicle[PRICE],
             'trim': vehicle[TRIM],
             'mileage': vehicle[MILEAGE],
             'year': vehicle[YEAR],
@@ -64,20 +67,24 @@ def get_seller_id(vehicle, api, session):
     Args:
         vehicle(dict): Vehicle whose seller needs to be created/searched
         api (pscraper.api.API): Pscraper api, that allows retrieval/creation of marketplaces
+        session (requests.sessions.Session): Google Maps Session to use for geolocating seller
     """
     seller = vehicle[SELLER]
-
-    # Search the seller by phone_number
-    db_seller = api.seller_get(phone_number=seller[PHONE_NUMBER])
-    if db_seller == -1:
-        return -1
-    elif len(db_seller) == 1:
-        return db_seller[0]['id']
     try:
         address = ADDRESS_FORMAT.format(seller[STREET_ADDRESS], seller[CITY], seller[STATE])
     except KeyError:
-        send_slack_message(channel='#errors', text=f'```Seller Error:\n{seller}\nVehicle:{vehicle}```')
+        logger.debug(f'Address could not be composed for seller: "{seller}", vehicle: "{vehicle}"')
+        send_slack_message(channel='#errors', text=f'```Seller Error:\n{seller}```')
         return -1
+
+    # Search the seller by phone_number
+    db_seller = api.seller_get(address=address)
+    if db_seller == -1:
+        return -1
+    elif len(db_seller) >= 1:
+        if len(db_seller) > 1:
+            logger.debug(f'Found {len(db_seller)} sellers with address: "{address}". Sellers: "{db_seller}"')
+        return db_seller[0]['id']
 
     latitude, longitude = get_geolocation(address, session)
     payload = {

@@ -1,10 +1,13 @@
 import functools
 import time
+from logging import getLogger
 from os import environ
 from sys import exc_info
 from traceback import format_exception
 
 from slack import WebClient
+
+logger = getLogger(__name__)
 
 
 def send_slack_message(**kwargs):
@@ -27,6 +30,7 @@ def get_geolocation(address, session):
 
     Args:
         address (str): Human readable address
+        session (requests.sessions.Session): Session to use for geolocating
 
     Returns:
         latitude, longitude (tuple) Lat, Lng found from Google Maps API
@@ -37,6 +41,7 @@ def get_geolocation(address, session):
     if resp['status'] != 'OK':
         req = google_maps_query.split("&key")[0]
         text = f'```Error locating address: "{address}"\n\nRequest: {req}\n\nResponse: {resp}```'
+        logger.debug(f'Error geolocating address: "{address}"')
         send_slack_message(channel='#errors', text=text)
         return None, None
     return resp['results'][0]['geometry']['location']['lat'], resp['results'][0]['geometry']['location']['lng']
@@ -44,11 +49,11 @@ def get_geolocation(address, session):
 
 def measure_time(func):
     """
-    A decorator to call a function and track the time spent inside
+    A decorator to call a function and track the time it takes for the function to finish execution
+
     Args:
         func: Function to be decorated
     """
-
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         start_time = time.time()

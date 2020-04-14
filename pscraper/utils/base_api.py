@@ -16,13 +16,13 @@ def request_wrapper(method, success_codes):
         @wraps(func)
         def wrapper(self, url, *args, **kwargs):
             url = self.get_full_url(url)
-            logger.info(f'Request: {url} {args if args else ""}{kwargs if kwargs else ""}')
+            logger.info(f'Req: {method} {url} {args if args else ""}{kwargs if kwargs else ""}')
             try:
                 resp = func(self, url, *args, **kwargs)
-                logger.info(f'Response: {resp.status_code} {resp.text}')
+                logger.info(f'Resp: {resp.status_code} {resp.text}')
                 assert_func = is_in if type(success_codes) is list else equal_to
                 error_msg = f'```{method} {url} failed with status code: {resp.status_code}\n' \
-                            f'Request: {args if args else ""}{kwargs}\nResponse: {resp.json()}'
+                            f'Req: {args if args else ""}{kwargs}\nResp: {resp.json()}'
                 assert_that(resp.status_code, assert_func(success_codes), error_msg)
                 return resp.json()
             except (RequestException, ConnectionError, AssertionError, JSONDecodeError):

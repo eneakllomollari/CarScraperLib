@@ -7,9 +7,9 @@
 * Add logging and update error handling in update table
     - All logs are date-stamped under `logs/` directory
 * Update slack daily report format
+* Use seller's address to identify it as unique when searching
 
 #### v1.0.4
-* Add multi threading for `update_vehicle`
 * Report api errors from base api decorator
 * Check google maps api `status_code` before accessing the results
 * Don't post message on slack after scraping is complete, let the scraping-tool handle it 
@@ -24,7 +24,7 @@
 * Add error handling when seller geolocation can't be found by Google Maps API
 
 #### v1.0.1
-* Add filter to skip vehicle's whose seller does not have a phone number
+* Add filter to skip vehicles whose seller does not have a phone number
 
 ### v1.0.0
 * Initial Release
