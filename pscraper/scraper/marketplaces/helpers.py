@@ -65,7 +65,7 @@ def get_seller_id(vehicle, api, session):
     Requires seller to have streetAddress, city and state. If any are missing returns -1.
 
     Args:
-        vehicle(dict): Vehicle whose seller needs to be created/searched
+        vehicle (dict): Vehicle whose seller needs to be created/searched
         api (pscraper.api.API): Pscraper api, that allows retrieval/creation of marketplaces
         session (requests.sessions.Session): Google Maps Session to use for geolocating seller
     """

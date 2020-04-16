@@ -1,4 +1,8 @@
-# Pscraper Changelog
+# Changelog
+
+### v1.2.0
+* Update `README.md` with documentation on the project
+* Rename `post_daily_slack_report` to `send_slack_report` and move to `pscraper.utils.misc`
 
 ### v1.1.0
 * Post every vehicle's dynamic data into a separate table using the `pscraper/history` endpoint 

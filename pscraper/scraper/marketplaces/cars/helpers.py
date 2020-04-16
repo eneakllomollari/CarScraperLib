@@ -8,6 +8,15 @@ from ..consts import STATES
 
 
 def get_cars_com_response(url, session):
+    """ Scrapes vehicle and page information from `url`
+
+    Args:
+        url (str): Url to get the response from
+        session (requests.sessions.Session): Session to use for sending requests
+
+    Returns:
+        (dict): Parsed information about the url and the vehicles it contains
+    """
     token = 'CARS.digitalData = '
     for val in BeautifulSoup(session.get(url).text, 'html.parser').find('head').find_all('script'):
         val = val.text.strip()
@@ -20,7 +29,8 @@ def get_cars_com_response(url, session):
 
 def validate_params(search_radius, target_states):
     """
-    Validates that `target_states` are eligible states
+    Validates that `target_states` are eligible states and `search_radius` is valid
+
     Args:
         search_radius(int): Radius to scrape in
         target_states(list): states provided by the scraper
