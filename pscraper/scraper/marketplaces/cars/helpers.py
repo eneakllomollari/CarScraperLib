@@ -1,10 +1,13 @@
 import json
+from logging import getLogger
 
 from bs4 import BeautifulSoup
 from hamcrest import assert_that, equal_to, is_in
 
 from .consts import ALLOWED_RD
 from ..consts import STATES
+
+logger = getLogger(__name__)
 
 
 def get_cars_com_response(url, session):
@@ -18,13 +21,18 @@ def get_cars_com_response(url, session):
         (dict): Parsed information about the url and the vehicles it contains
     """
     token = 'CARS.digitalData = '
-    for val in BeautifulSoup(session.get(url).text, 'html.parser').find('head').find_all('script'):
-        val = val.text.strip()
-        try:
-            return json.loads(val[val.index(token) + len(token):][:-1])
-        except ValueError:
-            pass
-    raise ValueError(f'cars.com response data was not found!\n\t{url}')
+    resp = session.get(url)
+    try:
+        for val in BeautifulSoup(resp.text, 'html.parser').find('head').find_all('script'):
+            val = val.text.strip()
+            try:
+                return json.loads(val[val.index(token) + len(token):][:-1])
+            except ValueError:
+                pass
+    except AttributeError as error:
+        logger.critical(f'cars.com response error!\t{resp.text}', exc_info=error)
+        raise error
+    raise ValueError(f'cars.com response data was not found!\t{url}')
 
 
 def validate_params(search_radius, target_states):
