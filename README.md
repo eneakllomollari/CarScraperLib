@@ -1,5 +1,5 @@
 ## PHEV Electric Vehicle Scraping Library 
-[![Build Status](https://travis-ci.com/eneakllomollari/pscraper-lib.svg?branch=master)](https://travis-ci.com/eneakllomollari/pscraper-lib)
+[![Build Status](https://travis-ci.com/eneakllomollari/pscraper-lib.svg?token=dyCCbKsyaqSXpEtQ3kCk&branch=master)](https://travis-ci.com/eneakllomollari/pscraper-lib)
 
 #### Sub-modules
 * [pscraper.api](#pscraperapi)
