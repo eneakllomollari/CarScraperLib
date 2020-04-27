@@ -1,5 +1,8 @@
 # Changelog
 
+#### v1.2.1
+* Add error reporting in <code>get_cars_com_response</code>
+
 ### v1.2.0
 * Update `README.md` with documentation on the project
 * Rename `post_daily_slack_report` to `send_slack_report` and move to `pscraper.utils.misc`
