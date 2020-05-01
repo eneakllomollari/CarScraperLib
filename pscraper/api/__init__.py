@@ -7,8 +7,8 @@ class API(BaseAPI):
     """
 
     def __init__(self, username, password, localhost=False):
-        url = 'http://pscraper.herokuapp.com/pscraper/' if not localhost else 'http://localhost:8000/pscraper/'
-        super().__init__(url, (username, password))
+        host = 'http://pscraper.herokuapp.com/' if not localhost else 'http://localhost:8000/'
+        super().__init__(f'{host}api/v1/', (username, password))
 
     # ===== GET =====
     def seller_get(self, **kwargs):
