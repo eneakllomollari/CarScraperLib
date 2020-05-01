@@ -1,4 +1,4 @@
-beautifulsoup4>=4.8.2
+beautifulsoup4>=4.8.2,<4.9.0
 requests>=2.23.0
 flake8>=3.7.9
 slackclient>=2.5.0
