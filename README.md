@@ -40,7 +40,6 @@ Provides the APIs to interact with the database
 * [pscraper.scraper.marketplaces.autotrader](#pscraperscrapermarketplacesautotrader)
 * [pscraper.scraper.marketplaces.carmax](#pscraperscrapermarketplacescarmax)
 * [pscraper.scraper.marketplaces.cars](#pscraperscrapermarketplacescars)
-* [pscraper.scraper.marketplaces.consts](#pscraperscrapermarketplacesconsts)
 * [pscraper.scraper.marketplaces.helpers](#pscraperscrapermarketplaceshelpers)
 #### Functions
 ##### Function `scrape`
@@ -84,7 +83,6 @@ Scrape data about electric vehicles from all supported marketplaces using the sp
 
 ## pscraper.scraper.marketplaces.cars
 #### Sub-modules
-* [pscraper.scraper.marketplaces.cars.consts](#pscraperscrapermarketplacescarsconsts)
 * [pscraper.scraper.marketplaces.cars.helpers](#pscraperscrapermarketplacescarshelpers)
 #### Functions
 ##### Function `scrape_cars`
@@ -107,8 +105,6 @@ Scrape EV data from cars.com filtering with the specified parameters
 
 **```total```** :&ensp; <code>int</code>
 :   Total number of cars scraped 
-
-## pscraper.scraper.marketplaces.cars.consts
 
 ## pscraper.scraper.marketplaces.cars.helpers
 #### Functions
@@ -137,8 +133,6 @@ Validates that <code>target\_states</code> are eligible states and <code>search\
 
 **```target_states```** :&ensp; <code>list</code>
 :   States provided by the scraper
-
-## pscraper.scraper.marketplaces.consts
 
 ## pscraper.scraper.marketplaces.helpers
 #### Functions
