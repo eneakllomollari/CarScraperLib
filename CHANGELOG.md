@@ -1,5 +1,10 @@
 # Changelog
 
+#### v1.2.2
+* Update api endpoint from `pscraper/` to `api/v1/`
+* Clean up documentation from README.md
+* Restrict `beautifulsoup4` from upgrading to versions &ge;`4.9.0`
+
 #### v1.2.1
 * Add error reporting in <code>get_cars_com_response</code>
 

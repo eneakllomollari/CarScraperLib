@@ -7,10 +7,10 @@ with open(join(abspath(dirname(__file__)), 'README.md'), encoding='utf-8') as fd
 
 setup(
     name='pscraper-lib',
-    version='1.2.1',
+    version='1.2.2',
     author='Enea Kllomollari',
-    author_email='ekllomollari@ucdavis.edu',
-    description='PHEV Electric Vehicle Scraper',
+    author_email='eneakllomollari@gmail.com',
+    description='PHEV Electric Vehicle Scraping Library',
     long_description=long_description,
     long_description_content_type='text/markdown',
     packages=find_packages(),
