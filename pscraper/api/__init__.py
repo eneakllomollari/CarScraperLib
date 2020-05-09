@@ -6,8 +6,8 @@ class PscraperAPI(BaseAPI):
     Provides the APIs to interact with the pscraper backend application
     """
 
-    def __init__(self, token, host):
-        super().__init__(f'https://{host}/api/v1/', token)
+    def __init__(self, host, token):
+        super().__init__(f'http://{host}/api/v1/', token)
 
     # ===== GET =====
     def seller_get(self, **kwargs):
