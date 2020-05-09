@@ -1,5 +1,12 @@
 # Changelog
 
+### v1.3.0
+* Use `urllib.parse.quote` when sending address as query parameter to Google Maps API
+* Add `mileage` parameter to post to history table
+* Track mileage changes to ensure up to date information on static vehicle table
+* Change Base API from basic authentication to token authorization
+* Rename `pscraper.api.API` to `pscraper.api.PscraperAPI`
+
 #### v1.2.3
 * Add restriction on VIN number to be 17 characters long
 
