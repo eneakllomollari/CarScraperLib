@@ -1,14 +1,13 @@
 from pscraper.utils.base_api import BaseAPI
 
 
-class API(BaseAPI):
+class PscraperAPI(BaseAPI):
     """
-    Provides the APIs to interact with the database
+    Provides the APIs to interact with the pscraper backend application
     """
 
-    def __init__(self, username, password, localhost=False):
-        host = 'http://pscraper.herokuapp.com/' if not localhost else 'http://localhost:8000/'
-        super().__init__(f'{host}api/v1/', (username, password))
+    def __init__(self, token, host):
+        super().__init__(f'https://{host}/api/v1/', token)
 
     # ===== GET =====
     def seller_get(self, **kwargs):
