@@ -7,6 +7,7 @@ from os import environ
 from socket import gethostname
 from sys import exc_info
 from traceback import format_exception
+from urllib.parse import quote
 
 from slack import WebClient
 
@@ -25,7 +26,7 @@ def get_geolocation(address, session):
         latitude, longitude (tuple) Lat, Lng found from Google Maps API
     """
     google_maps_query = f'https://maps.googleapis.com/maps/api/geocode/json?' \
-                        f'address={address}&key={environ["GCP_API_TOKEN"]}'
+                        f'address={quote(address)}&key={environ["GCP_API_TOKEN"]}'
     resp = session.get(google_maps_query).json()
     if resp['status'] != 'OK':
         req = google_maps_query.split("&key")[0]
