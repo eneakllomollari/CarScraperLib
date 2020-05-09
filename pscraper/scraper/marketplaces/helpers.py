@@ -11,7 +11,7 @@ logger = getLogger(__name__)
 def update_vehicle(vehicle, api, google_maps_session):
     """
     Updates vehicle's last date and duration if it exists in the database, creates a new vehicle if it doesn't.
-    Updates vehicle's price/seller if a change is found from the existing price/seller.
+    Updates vehicle's price/seller/mileage if a change is found from the existing price/seller.
     Args:
         vehicle (dict): vehicle to be created/updated
         api (pscraper.api.API): Pscraper api, that allows retrieval/creation of marketplaces
@@ -21,7 +21,7 @@ def update_vehicle(vehicle, api, google_maps_session):
     if seller_id == -1:
         return
 
-    api.history_post(vin=vehicle[VIN], price=vehicle[PRICE], seller=seller_id, date=CURR_DATE)
+    api.history_post(vin=vehicle[VIN], price=vehicle[PRICE], seller=seller_id, date=CURR_DATE, mileage=vehicle[MILEAGE])
 
     db_vehicles = api.vehicle_get(vin=vehicle[VIN])
     if db_vehicles == -1:
@@ -33,10 +33,12 @@ def update_vehicle(vehicle, api, google_maps_session):
             'last_date': CURR_DATE,
             'duration': (get_date(CURR_DATE, DATE_FMT) - get_date(db_vehicle['first_date'], DATE_FMT)).days
         }
+        if db_vehicle['mileage'] != vehicle[MILEAGE]:
+            payload['mileage'] = vehicle[MILEAGE]
         if db_vehicle['price'] != vehicle[PRICE]:
-            payload.update({'price': vehicle[PRICE]})
+            payload['price'] = vehicle[PRICE]
         if db_vehicle['seller'] != seller_id:
-            payload.update({'seller': seller_id})
+            payload['seller'] = seller_id
 
         api.vehicle_patch(vin=vehicle[VIN], **payload)
     else:
@@ -61,8 +63,8 @@ def update_vehicle(vehicle, api, google_maps_session):
 def get_seller_id(vehicle, api, session):
     """
     Returns a seller id (primary_key). Search for existing seller by address.
-    If not found creates a new creates a new seller and returns it's id.
-    Requires seller to have streetAddress, city and state. If any are missing returns -1.
+    If not found creates a new seller and returns its id.
+    Requires `seller` to have `streetAddress`, `city` and `state`. If any are missing returns -1.
 
     Args:
         vehicle (dict): Vehicle whose seller needs to be created/searched
