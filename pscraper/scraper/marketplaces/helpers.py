@@ -14,7 +14,7 @@ def update_vehicle(vehicle, api, google_maps_session):
     Updates vehicle's price/seller/mileage if a change is found from the existing price/seller.
     Args:
         vehicle (dict): vehicle to be created/updated
-        api (pscraper.api.API): Pscraper api, that allows retrieval/creation of marketplaces
+        api (pscraper.api.PscraperAPI): Pscraper api, that allows retrieval/creation of marketplaces
         google_maps_session (requests.sessions.Session): Google Maps Session to use for geolocating seller
     """
     seller_id = get_seller_id(vehicle, api, google_maps_session)
@@ -68,7 +68,7 @@ def get_seller_id(vehicle, api, session):
 
     Args:
         vehicle (dict): Vehicle whose seller needs to be created/searched
-        api (pscraper.api.API): Pscraper api, that allows retrieval/creation of marketplaces
+        api (pscraper.api.PscraperAPI): Pscraper api, that allows retrieval/creation of marketplaces
         session (requests.sessions.Session): Google Maps Session to use for geolocating seller
     """
     seller = vehicle[SELLER]

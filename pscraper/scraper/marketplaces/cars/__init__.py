@@ -15,7 +15,7 @@ def scrape_cars(zip_code, search_radius, target_states, api):
         zip_code (str): The zip code to perform the search in
         search_radius (int): The search radius for the specified zip code
         target_states (list): The states to search in (i.e. ```['CA', 'NV']```)
-        api (pscraper.api.API): Pscraper API to communicate with the backend
+        api (pscraper.api.PscraperAPI): Pscraper API to communicate with the backend
 
     Returns:
         total (int): Total number of cars scraped

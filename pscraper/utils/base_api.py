@@ -36,10 +36,10 @@ def request_wrapper(method, success_codes):
 
 
 class BaseAPI(object):
-    def __init__(self, base_url, auth):
+    def __init__(self, base_url, token):
         self.base_url = base_url
         self.session = Session()
-        self.session.auth = auth
+        self.session.headers.update({'Authorization': f'Token {token}'})
 
     def get_full_url(self, url):
         return url if 'http' in url else f'{self.base_url}{url}'

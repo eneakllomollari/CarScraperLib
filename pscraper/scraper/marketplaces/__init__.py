@@ -10,7 +10,7 @@ def scrape(zip_code, search_radius, target_states, api):
         zip_code (str): The zip code to perform the search in
         search_radius (int): The search radius for the specified zip code
         target_states (list): The states to search in (i.e. ```['CA', 'NV']```)
-        api (pscraper.api.API): Pscraper API to communicate with the DB
+        api (pscraper.api.PscraperAPI): Pscraper API to communicate with the DB
 
     Returns:
         list of tuples: (elapsed time and total vehicles) per marketplace
