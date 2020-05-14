@@ -7,7 +7,7 @@ class PscraperAPI(BaseAPI):
     """
 
     def __init__(self, host, token):
-        super().__init__(f'http://{host}/api/v1/', token)
+        super().__init__(f'https://{host}/api/v1/', token)
 
     # ===== GET =====
     def seller_get(self, **kwargs):
