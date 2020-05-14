@@ -1,9 +1,9 @@
 import datetime
 import functools
+import os
 import time
 from getpass import getuser
 from logging import getLogger
-from os import environ
 from socket import gethostname
 from sys import exc_info
 from traceback import format_exception
@@ -14,8 +14,8 @@ from slack import WebClient
 logger = getLogger(__name__)
 
 
-def get_geolocation(address, session):
-    """ Finds latitude and longitude from a human readable address using Google Maps API.
+def geolocate(address, session):
+    """ Geo-locates a human readable address and breaks it down to lat, lng, zip code and address using Google Maps API.
     You need to set the environment variable `GCP_API_TOKEN` to your Google Maps API token
 
     Args:
@@ -26,15 +26,30 @@ def get_geolocation(address, session):
         latitude, longitude (tuple) Lat, Lng found from Google Maps API
     """
     google_maps_query = f'https://maps.googleapis.com/maps/api/geocode/json?' \
-                        f'address={quote(address)}&key={environ["GCP_API_TOKEN"]}'
+                        f'address={quote(address)}&key={os.getenv("GCP_API_TOKEN")}'
     resp = session.get(google_maps_query).json()
     if resp['status'] != 'OK':
-        req = google_maps_query.split("&key")[0]
-        text = f'```Error locating address: "{address}"\n\nRequest: {req}\n\nResponse: {resp}```'
         logger.debug(f'Error geolocating address: "{address}"')
-        send_slack_message(channel='#errors', text=text)
+        send_slack_message(text=f'```Error locating address: "{address}"\nRequest: {google_maps_query.split("&key")[0]}'
+                                f'\nResponse: {resp}```', channel='#data')
         return None, None
-    return resp['results'][0]['geometry']['location']['lat'], resp['results'][0]['geometry']['location']['lng']
+    address_components, address, state = resp['results'][0]['address_components'], '', ''
+    for component in address_components:
+        if 'street_number' in component['types']:
+            address += component['short_name']
+        elif 'route' in component['types']:
+            address += ' ' + component['short_name']
+        elif 'locality' in component['types']:
+            address += ', ' + component['short_name']
+        elif 'administrative_area_level_1' in component['types']:
+            address += ', ' + component['short_name']
+            state = component['short_name']
+    return {
+        'address': address,
+        'state': state,
+        'lat': resp['results'][0]['geometry']['location']['lat'],
+        'lng': resp['results'][0]['geometry']['location']['lng'],
+    }
 
 
 def measure_time(func):
@@ -74,7 +89,7 @@ def send_slack_message(**kwargs):
     """
     if len(kwargs) == 1:
         kwargs.update({'text': f'```{get_traceback()}```'})
-    client = WebClient(token=environ['SLACK_API_TOKEN'])
+    client = WebClient(token=os.getenv('SLACK_API_TOKEN'))
     client.chat_postMessage(**kwargs)
 
 
