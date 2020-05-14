@@ -31,7 +31,7 @@ def geolocate(address, session):
     if resp['status'] != 'OK':
         logger.debug(f'Error geolocating address: "{address}"')
         send_slack_message(text=f'```Error locating address: "{address}"\nRequest: {google_maps_query.split("&key")[0]}'
-                                f'\nResponse: {resp}```', channel='#data')
+                                f'\nResponse: {resp}```', channel='#errors')
         return None, None
     address_components, address, state = resp['results'][0]['address_components'], '', ''
     for component in address_components:
