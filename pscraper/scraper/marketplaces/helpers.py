@@ -1,9 +1,13 @@
+import json
 from datetime import datetime
 from logging import getLogger
 
-from pscraper.utils.misc import get_geolocation, send_slack_message
-from .consts import ADDRESS_FORMAT, BODY_STYLE, CITY, CURR_DATE, DATE_FMT, LISTING_ID, MAKE, MILEAGE, MODEL, NAME, \
-    PHONE_NUMBER, PRICE, SELLER, STATE, STREET_ADDRESS, TRIM, VIN, YEAR
+from bs4 import BeautifulSoup
+from hamcrest import assert_that, is_in
+
+from pscraper.utils.misc import geolocate, send_slack_message
+from .consts import ADDRESS_FORMAT, ALLOWED_RD, BODY_STYLE, CITY, CURR_DATE, DATE_FMT, HEADERS, LISTING_ID, MAKE, \
+    MILEAGE, MODEL, NAME, PHONE_NUMBER, PRICE, SELLER, STATE, STATES, STREET_ADDRESS, TRIM, VIN, YEAR
 
 logger = getLogger(__name__)
 
@@ -79,7 +83,7 @@ def get_seller_id(vehicle, api, session):
         send_slack_message(channel='#errors', text=f'```Seller Error:\n{seller}```')
         return -1
 
-    # Search the seller by phone_number
+    # Search the seller by address
     db_seller = api.seller_get(address=address)
     if db_seller == -1:
         return -1
@@ -88,7 +92,7 @@ def get_seller_id(vehicle, api, session):
             logger.debug(f'Found {len(db_seller)} sellers with address: "{address}". Sellers: "{db_seller}"')
         return db_seller[0]['id']
 
-    latitude, longitude = get_geolocation(address, session)
+    latitude, longitude = geolocate(address, session)
     payload = {
         'phone_number': seller[PHONE_NUMBER],
         'name': seller[NAME],
@@ -100,3 +104,48 @@ def get_seller_id(vehicle, api, session):
     if new_seller == -1:
         return -1
     return new_seller['id']
+
+
+def get_cars_com_response(url, session):
+    """ Scrapes vehicle and page information from `url`
+
+    Args:
+        url (str): Url to get the response from
+        session (requests.sessions.Session): Session to use for sending requests
+
+    Returns:
+        (dict): Parsed information about the url and the vehicles it contains
+    """
+    token = 'CARS.digitalData = '
+    resp = session.get(url)
+    try:
+        for val in BeautifulSoup(resp.text, 'html.parser').find('head').find_all('script'):
+            val = val.text.strip()
+            try:
+                return json.loads(val[val.index(token) + len(token):][:-1])
+            except ValueError:
+                pass
+    except AttributeError as error:
+        logger.critical(f'cars.com response error!\t{resp.text}', exc_info=error)
+        raise error
+    raise ValueError(f'cars.com response data was not found!\t{url}')
+
+
+def get_autotrader_resp(url, session):
+    """ Scrapes vehicle and page information from `url`
+
+    Args:
+        url (str): Url to get the response from
+        session (requests.sessions.Session): Session to use for sending requests
+
+    Returns:
+        (dict): Information about the search results scraped from `url`
+    """
+    resp = session.get(url, headers=HEADERS)
+    soup = BeautifulSoup(resp.text, 'html.parser').find_all('script', {'type': 'text/javascript'})
+    return json.loads(soup[3].contents[0][23:])
+
+
+def validate_params(search_radius, target_states):
+    assert_that(search_radius, is_in(ALLOWED_RD))
+    assert_that(set(target_states).issubset(set(STATES)))
