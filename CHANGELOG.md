@@ -1,6 +1,6 @@
 # Changelog
 
-### v1.3.0
+## v2.0.0
 * Use `urllib.parse.quote` when sending address as query parameter to Google Maps API
 * Add `mileage` parameter to post to history table
 * Track mileage changes to ensure up to date information on static vehicle table
