@@ -1,9 +1,9 @@
 from requests.sessions import Session
 
 from pscraper.utils.misc import measure_time
-from ..consts import CARS_COM_QUERY, LISTING_ID, PAGE, PHONE_NUMBER, SEARCH, SELLER, STATE, TOTAL_NUM_PAGES, VEHICLE, \
+from pscraper.scraper.consts import CARS_COM_QUERY, LISTING_ID, PAGE, PHONE_NUMBER, SEARCH, SELLER, STATE, TOTAL_NUM_PAGES, VEHICLE, \
     VIN
-from ..helpers import get_cars_com_response, update_vehicle, validate_params
+from pscraper.scraper.helpers import get_cars_com_response, update_vehicle, validate_search_params
 
 
 @measure_time
@@ -19,7 +19,7 @@ def scrape_cars(zip_code, search_radius, target_states, api):
     Returns:
         total (int): Total number of cars scraped
     """
-    validate_params(search_radius, target_states)
+    validate_search_params(search_radius, target_states)
     total = 0
     url = CARS_COM_QUERY.format('{}', search_radius, zip_code)
     cars_session, google_maps_session = Session(), Session()

@@ -25,27 +25,27 @@ def geolocate(address, session):
     Returns:
         latitude, longitude (tuple) Lat, Lng found from Google Maps API
     """
-    google_maps_query = f'https://maps.googleapis.com/maps/api/geocode/json?' \
-                        f'address={quote(address)}&key={os.getenv("GCP_API_TOKEN")}'
+    google_maps_query = f'https://maps.googleapis.com/maps/api/geocode/json?address={quote(address)}&' \
+                        f'key={os.getenv("GCP_API_TOKEN")}'
     resp = session.get(google_maps_query).json()
     if resp['status'] != 'OK':
         logger.debug(f'Error geolocating address: "{address}"')
         send_slack_message(text=f'```Error locating address: "{address}"\nRequest: {google_maps_query.split("&key")[0]}'
                                 f'\nResponse: {resp}```', channel='#errors')
         return None, None
-    address_components, address, state = resp['results'][0]['address_components'], '', ''
+    address_components, street_address, city, state = resp['results'][0]['address_components'], '', None, None
     for component in address_components:
         if 'street_number' in component['types']:
-            address += component['short_name']
+            street_address += component['short_name']
         elif 'route' in component['types']:
-            address += ' ' + component['short_name']
+            street_address += ' ' + component['short_name']
         elif 'locality' in component['types']:
-            address += ', ' + component['short_name']
+            city = component['short_name']
         elif 'administrative_area_level_1' in component['types']:
-            address += ', ' + component['short_name']
             state = component['short_name']
     return {
-        'address': address,
+        'streetAddress': street_address,
+        'city': city,
         'state': state,
         'lat': resp['results'][0]['geometry']['location']['lat'],
         'lng': resp['results'][0]['geometry']['location']['lng'],

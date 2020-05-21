@@ -4,9 +4,9 @@ from logging import getLogger
 
 from bs4 import BeautifulSoup
 from hamcrest import assert_that, is_in
-
 from pscraper.utils.misc import geolocate, send_slack_message
-from .consts import ADDRESS_FORMAT, ALLOWED_RD, BODY_STYLE, CITY, CURR_DATE, DATE_FMT, HEADERS, LISTING_ID, MAKE, \
+
+from pscraper.scraper.consts import ADDRESS_FORMAT, ALLOWED_RD, BODY_STYLE, CITY, CURR_DATE, DATE_FMT, HEADERS, LISTING_ID, MAKE, \
     MILEAGE, MODEL, NAME, PHONE_NUMBER, PRICE, SELLER, STATE, STATES, STREET_ADDRESS, TRIM, VIN, YEAR
 
 logger = getLogger(__name__)
@@ -21,6 +21,7 @@ def update_vehicle(vehicle, api, google_maps_session):
         api (pscraper.api.PscraperAPI): Pscraper api, that allows retrieval/creation of marketplaces
         google_maps_session (requests.sessions.Session): Google Maps Session to use for geolocating seller
     """
+    validate_vehicle_keys(vehicle)
     seller_id = get_seller_id(vehicle, api, google_maps_session)
     if seller_id == -1:
         return
@@ -146,6 +147,15 @@ def get_autotrader_resp(url, session):
     return json.loads(soup[3].contents[0][23:])
 
 
-def validate_params(search_radius, target_states):
+def validate_search_params(search_radius, target_states):
     assert_that(search_radius, is_in(ALLOWED_RD))
     assert_that(set(target_states).issubset(set(STATES)))
+
+
+def validate_vehicle_keys(vehicle):
+    vehicle_keys = VIN, PRICE, MILEAGE, PRICE, LISTING_ID, MAKE, MODEL, BODY_STYLE, TRIM, YEAR, SELLER
+    seller_keys = [STREET_ADDRESS, CITY, STATE, PHONE_NUMBER, NAME]
+    for key in vehicle_keys:
+        assert_that(key, is_in(vehicle))
+    for key in seller_keys:
+        assert_that(key, is_in(vehicle[SELLER]))
