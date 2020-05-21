@@ -1,5 +1,8 @@
 # Changelog
 
+#### v1.2.3
+* Add restriction on VIN number to be 17 characters long
+
 #### v1.2.2
 * Update api endpoint from `pscraper/` to `api/v1/`
 * Clean up documentation from README.md
