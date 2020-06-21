@@ -1,7 +1,7 @@
-import datetime
 import functools
 import os
 import time
+from datetime import datetime, timedelta
 from getpass import getuser
 from logging import getLogger
 from socket import gethostname
@@ -9,47 +9,58 @@ from sys import exc_info
 from traceback import format_exception
 from urllib.parse import quote
 
-from slack import WebClient
+import requests
+import slack
 
 logger = getLogger(__name__)
 
 
-def geolocate(address, session):
+def locate(raw_address, lat_lng_only=False):
     """ Geo-locates a human readable address and breaks it down to lat, lng, zip code and address using Google Maps API.
     You need to set the environment variable `GCP_API_TOKEN` to your Google Maps API token
 
     Args:
-        address (str): Human readable address
-        session (requests.sessions.Session): Session to use for geolocating
+        raw_address (str): Human readable address
+        lat_lng_only (bool): Include only lat and lng in the return dict
 
     Returns:
         latitude, longitude (tuple) Lat, Lng found from Google Maps API
     """
-    google_maps_query = f'https://maps.googleapis.com/maps/api/geocode/json?address={quote(address)}&' \
-                        f'key={os.getenv("GCP_API_TOKEN")}'
-    resp = session.get(google_maps_query).json()
+    address = {'streetAddress': '', 'city': '', 'state': '', 'lat': '', 'lng': '', 'place_id': ''}
+    resp = requests.get(f'https://maps.googleapis.com/maps/api/geocode/json?address={quote(raw_address)}'
+                        f'&key={os.getenv("GCP_API_TOKEN")}').json()
     if resp['status'] != 'OK':
-        logger.debug(f'Error geolocating address: "{address}"')
-        send_slack_message(text=f'```Error locating address: "{address}"\nRequest: {google_maps_query.split("&key")[0]}'
-                                f'\nResponse: {resp}```', channel='#errors')
-        return None, None
-    address_components, street_address, city, state = resp['results'][0]['address_components'], '', None, None
-    for component in address_components:
-        if 'street_number' in component['types']:
-            street_address += component['short_name']
-        elif 'route' in component['types']:
-            street_address += ' ' + component['short_name']
-        elif 'locality' in component['types']:
-            city = component['short_name']
-        elif 'administrative_area_level_1' in component['types']:
-            state = component['short_name']
-    return {
-        'streetAddress': street_address,
-        'city': city,
-        'state': state,
-        'lat': resp['results'][0]['geometry']['location']['lat'],
-        'lng': resp['results'][0]['geometry']['location']['lng'],
-    }
+        if resp['status'] == 'ZERO_RESULTS':
+            return address
+        logger.debug(f'Error geolocating address: "{raw_address}"')
+        send_slack_message(text=f'Error locating address: "{raw_address}"\nResponse: {resp}')
+        return address
+    location = resp['results'][0]['geometry']['location']
+    address['lat'], address['lng'] = location['lat'], location['lng']
+    if lat_lng_only:
+        return address
+    address['place_id'] = resp['results'][0]['place_id']
+    for comp in resp['results'][0]['address_components']:
+        if 'street_number' in comp['types']:
+            address['streetAddress'] += comp['short_name']
+        elif 'route' in comp['types']:
+            address['streetAddress'] += ' ' + comp['short_name']
+        elif 'locality' in comp['types']:
+            address['city'] = comp['short_name']
+        elif 'administrative_area_level_1' in comp['types']:
+            address['state'] = comp['short_name']
+    return address
+
+
+def get_phone_number(place_id):
+    url = f'https://maps.googleapis.com/maps/api/place/details/json?inputtype=textquery&fields=formatted_phone_number' \
+          f'&place_id={place_id}&key={os.getenv("GCP_API_TOKEN")}'
+    resp = requests.get(url).json()
+    try:
+        phone_number = resp['result']['formatted_phone_number']
+        return phone_number.replace('(', '').replace(')', '').replace(' ', '').replace('-', '')
+    except KeyError:
+        return ''
 
 
 def measure_time(func):
@@ -73,6 +84,7 @@ def measure_time(func):
 def get_traceback():
     """
     Get formatted traceback information after exception
+
     Returns:
         text (str): Traceback text
     """
@@ -80,23 +92,29 @@ def get_traceback():
 
 
 def send_slack_message(**kwargs):
-    """ Sends a message in Slack. If only one argument is provided (channel) it sends traceback information about
-    the most recent exception. You need to set the `SLACK_API_TOKEN` environment variable of your slack workspace
-     API token
+    """ Sends a message in Slack. You need to set the `SLACK_API_TOKEN` environment variable of your slack API token
 
     Args:
         kwargs: Keyword arguments to be used as payload for WebClient
     """
-    if len(kwargs) == 1:
-        kwargs.update({'text': f'```{get_traceback()}```'})
-    client = WebClient(token=os.getenv('SLACK_API_TOKEN'))
+    if 'text' not in kwargs:
+        kwargs['text'] = f'```{datetime.now()}:{get_traceback()}```'
+    else:
+        kwargs['text'] = f'```{datetime.now()}:{kwargs["text"]}```'
+    if 'channel' not in kwargs:
+        kwargs['channel'] = '#errors'
+    if getuser() == 'enea':
+        kwargs['channel'] = '#debug'
+
+    client = slack.WebClient(token=os.getenv('SLACK_API_TOKEN'))
     client.chat_postMessage(**kwargs)
 
 
 def send_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_total, states, channel='#daily-job'):
     """
-    Post scraping report on slack channel `#daily-job`. Need to set the `SLACK_API_TOKEN` environment variable
-    to your slack workspace API token. Uses `utils.misc.send_slack_message`.
+    Post scraping report on slack channel `#daily-job` by default.
+    Need to set the `SLACK_API_TOKEN` environment variable to your slack workspace API token.
+    Uses `utils.misc.send_slack_message`.
 
     Args:
         cars_et: Time in seconds it took to scrape cars.com
@@ -113,13 +131,12 @@ def send_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_total, sta
     carmax_link = '<https://www.carmax.com/|CarMax>'
     autotrader_link = '<https://www.autotrader.com/|Autotrader>'
     cars_com_link = '<https://www.cars.com/|Cars.com>'
-    states = states if states != 'ALL' else 'All States'
     blocks = [
         {
             'type': 'section',
             'text': {
                 'type': 'mrkdwn',
-                'text': f'*Scraper Report* _{datetime.datetime.now().date()}_'
+                'text': f'*Scraper Report* _{datetime.now().date()}_'
             }
         },
         {
@@ -131,7 +148,7 @@ def send_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_total, sta
                 },
                 {
                     'type': 'mrkdwn',
-                    'text': f'*Time*:\t{round(cars_et + at_et + cm_et, 2)} sec'
+                    'text': f'*Time*:\t{_get_duration(cars_et + at_et + cm_et)}'
                 },
                 {
                     'type': 'mrkdwn',
@@ -143,7 +160,8 @@ def send_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_total, sta
             'type': 'section',
             'text': {
                 'type': 'mrkdwn',
-                'text': line.format(success if cars_total > 0 else soon, f'{cars_com_link}   ', cars_total, cars_et)
+                'text': line.format(success if cars_total > 0 else soon, f'{cars_com_link}   ', cars_total,
+                                    _get_duration(cars_et))
             }
         },
         {
@@ -151,14 +169,15 @@ def send_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_total, sta
             'text': {
                 'type': 'mrkdwn',
                 'text': line.format(success if at_total > 0 else soon, f'{autotrader_link}', at_total,
-                                    at_et)
+                                    _get_duration(at_et))
             }
         },
         {
             'type': 'section',
             'text': {
                 'type': 'mrkdwn',
-                'text': line.format(success if cm_total > 0 else soon, f'{carmax_link}\t ', cm_total, cm_et)
+                'text': line.format(success if cm_total > 0 else soon, f'{carmax_link}\t ', cm_total,
+                                    _get_duration(cm_et))
             }
         },
         {
@@ -175,3 +194,7 @@ def send_slack_report(cars_et, cars_total, at_et, at_total, cm_et, cm_total, sta
         },
     ]
     send_slack_message(channel=channel, blocks=blocks, text='Daily Report')
+
+
+def _get_duration(seconds):
+    return str(timedelta(seconds=seconds)).split(".")[0]

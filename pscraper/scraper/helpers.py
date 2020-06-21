@@ -2,36 +2,41 @@ import json
 from datetime import datetime
 from logging import getLogger
 
+import requests
 from bs4 import BeautifulSoup
-from hamcrest import assert_that, is_in
-from pscraper.utils.misc import geolocate, send_slack_message
+from requests.exceptions import RequestException
 
-from pscraper.scraper.consts import ADDRESS_FORMAT, ALLOWED_RD, BODY_STYLE, CITY, CURR_DATE, DATE_FMT, HEADERS, LISTING_ID, MAKE, \
-    MILEAGE, MODEL, NAME, PHONE_NUMBER, PRICE, SELLER, STATE, STATES, STREET_ADDRESS, TRIM, VIN, YEAR
+from .consts import ADDRESS_FORMAT, BODY_STYLE, CARS_TOKEN, CITY, CURR_DATE, DATE_FMT, HEADERS, LAT, \
+    LISTING_ID, LNG, MAKE, MILEAGE, MODEL, NAME, PHONE_NUMBER, PRICE, SELLER, STATE, STREET_ADDRESS, TRIM, \
+    VIN, YEAR
+from ..utils.misc import locate, send_slack_message
 
 logger = getLogger(__name__)
 
 
-def update_vehicle(vehicle, api, google_maps_session):
+def update_vehicle(vehicle, api):
     """
     Updates vehicle's last date and duration if it exists in the database, creates a new vehicle if it doesn't.
     Updates vehicle's price/seller/mileage if a change is found from the existing price/seller.
+
     Args:
         vehicle (dict): vehicle to be created/updated
         api (pscraper.api.PscraperAPI): Pscraper api, that allows retrieval/creation of marketplaces
-        google_maps_session (requests.sessions.Session): Google Maps Session to use for geolocating seller
+
     """
-    validate_vehicle_keys(vehicle)
-    seller_id = get_seller_id(vehicle, api, google_maps_session)
+    seller_id = get_seller_id(vehicle, api)
     if seller_id == -1:
         return
 
+    # Post to history table
     api.history_post(vin=vehicle[VIN], price=vehicle[PRICE], seller=seller_id, date=CURR_DATE, mileage=vehicle[MILEAGE])
 
+    # Look for existing VIN
     db_vehicles = api.vehicle_get(vin=vehicle[VIN])
     if db_vehicles == -1:
         return
     elif len(db_vehicles) == 1:
+        # Vehicle exists, update data
         db_vehicle = db_vehicles[0]
         get_date = datetime.strptime
         payload = {
@@ -46,26 +51,28 @@ def update_vehicle(vehicle, api, google_maps_session):
             payload['seller'] = seller_id
 
         api.vehicle_patch(vin=vehicle[VIN], **payload)
-    else:
-        payload = {
-            'first_date': CURR_DATE,
-            'last_date': CURR_DATE,
-            'duration': 0,
-            'listing_id': vehicle[LISTING_ID],
-            'vin': vehicle[VIN],
-            'make': vehicle[MAKE],
-            'model': vehicle[MODEL],
-            'body_style': vehicle[BODY_STYLE],
-            'price': vehicle[PRICE],
-            'trim': vehicle[TRIM],
-            'mileage': vehicle[MILEAGE],
-            'year': vehicle[YEAR],
-            'seller': seller_id,
-        }
-        api.vehicle_post(**payload)
+        return
+
+    # New vehicle, add it to the table
+    payload = {
+        'first_date': CURR_DATE,
+        'last_date': CURR_DATE,
+        'duration': 0,
+        'listing_id': vehicle[LISTING_ID],
+        'vin': vehicle[VIN],
+        'make': vehicle[MAKE],
+        'model': vehicle[MODEL],
+        'body_style': vehicle[BODY_STYLE],
+        'price': vehicle[PRICE],
+        'trim': vehicle[TRIM],
+        'mileage': vehicle[MILEAGE],
+        'year': vehicle[YEAR],
+        'seller': seller_id,
+    }
+    api.vehicle_post(**payload)
 
 
-def get_seller_id(vehicle, api, session):
+def get_seller_id(vehicle, api):
     """
     Returns a seller id (primary_key). Search for existing seller by address.
     If not found creates a new seller and returns its id.
@@ -74,88 +81,79 @@ def get_seller_id(vehicle, api, session):
     Args:
         vehicle (dict): Vehicle whose seller needs to be created/searched
         api (pscraper.api.PscraperAPI): Pscraper api, that allows retrieval/creation of marketplaces
-        session (requests.sessions.Session): Google Maps Session to use for geolocating seller
     """
     seller = vehicle[SELLER]
     try:
         address = ADDRESS_FORMAT.format(seller[STREET_ADDRESS], seller[CITY], seller[STATE])
     except KeyError:
-        logger.debug(f'Address could not be composed for seller: "{seller}", vehicle: "{vehicle}"')
-        send_slack_message(channel='#errors', text=f'```Seller Error:\n{seller}```')
-        return -1
+        address = seller[NAME]
 
-    # Search the seller by address
+    # Search for existing seller
     db_seller = api.seller_get(address=address)
     if db_seller == -1:
         return -1
-    elif len(db_seller) >= 1:
-        if len(db_seller) > 1:
-            logger.debug(f'Found {len(db_seller)} sellers with address: "{address}". Sellers: "{db_seller}"')
+    elif len(db_seller) == 1:
         return db_seller[0]['id']
 
-    latitude, longitude = geolocate(address, session)
+    # New seller, add it to sellers table
+    location = seller if LAT in seller and LNG in seller else locate(address, lat_lng_only=True)
     payload = {
         'phone_number': seller[PHONE_NUMBER],
         'name': seller[NAME],
         'address': address,
-        'latitude': latitude,
-        'longitude': longitude
+        'latitude': location[LAT],
+        'longitude': location[LNG],
     }
     new_seller = api.seller_post(**payload)
-    if new_seller == -1:
-        return -1
-    return new_seller['id']
+    return new_seller['id'] if new_seller != -1 else -1
 
 
-def get_cars_com_response(url, session):
-    """ Scrapes vehicle and page information from `url`
+def get_cars_com_resp(url):
+    """ Scrapes vehicle and page information from cars.com `url`
 
     Args:
-        url (str): Url to get the response from
-        session (requests.sessions.Session): Session to use for sending requests
+        url (str): Url to get the data from
 
     Returns:
-        (dict): Parsed information about the url and the vehicles it contains
+        (dict): Parsed data about the url and the vehicles it contains
     """
-    token = 'CARS.digitalData = '
-    resp = session.get(url)
-    try:
-        for val in BeautifulSoup(resp.text, 'html.parser').find('head').find_all('script'):
-            val = val.text.strip()
-            try:
-                return json.loads(val[val.index(token) + len(token):][:-1])
-            except ValueError:
-                pass
-    except AttributeError as error:
-        logger.critical(f'cars.com response error!\t{resp.text}', exc_info=error)
-        raise error
-    raise ValueError(f'cars.com response data was not found!\t{url}')
+    max_tries, count = 3, 1
+    while count <= max_tries:
+        try:
+            count += 1
+            resp = requests.get(url, headers=HEADERS)
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            val = soup.select('head > script')[2].contents[0]
+            return json.loads(val[val.index(CARS_TOKEN) + len(CARS_TOKEN):][:-2])
+        except (AttributeError, RequestException, IndexError) as error:
+            if count == max_tries:
+                logger.critical('cars.com response error', exc_info=error)
+                send_slack_message(text=f'cars.com response error: \n{error}')
+                return {}
+            else:
+                logger.info('Retrying cars.com')
 
 
-def get_autotrader_resp(url, session):
-    """ Scrapes vehicle and page information from `url`
+def get_autotrader_resp(url):
+    """ Scrapes vehicle and page information from autotrader `url`
 
     Args:
-        url (str): Url to get the response from
-        session (requests.sessions.Session): Session to use for sending requests
+        url (str): Url to get the data from
 
     Returns:
-        (dict): Information about the search results scraped from `url`
+        (dict): Parsed data about the url and the vehicles it contains
     """
-    resp = session.get(url, headers=HEADERS)
-    soup = BeautifulSoup(resp.text, 'html.parser').find_all('script', {'type': 'text/javascript'})
-    return json.loads(soup[3].contents[0][23:])
-
-
-def validate_search_params(search_radius, target_states):
-    assert_that(search_radius, is_in(ALLOWED_RD))
-    assert_that(set(target_states).issubset(set(STATES)))
-
-
-def validate_vehicle_keys(vehicle):
-    vehicle_keys = VIN, PRICE, MILEAGE, PRICE, LISTING_ID, MAKE, MODEL, BODY_STYLE, TRIM, YEAR, SELLER
-    seller_keys = [STREET_ADDRESS, CITY, STATE, PHONE_NUMBER, NAME]
-    for key in vehicle_keys:
-        assert_that(key, is_in(vehicle))
-    for key in seller_keys:
-        assert_that(key, is_in(vehicle[SELLER]))
+    max_tries, count = 3, 1
+    while count <= max_tries:
+        try:
+            count += 1
+            resp = requests.get(url, headers=HEADERS)
+            soup = BeautifulSoup(resp.text, 'html.parser').find_all('script', {'type': 'text/javascript'})
+            return json.loads(soup[3].contents[0][23:])
+        except (AttributeError, RequestException, IndexError) as error:
+            if count == max_tries:
+                logger.critical('Autotrader response error', exc_info=error)
+                send_slack_message(text=f'Autotrader response error: \n{error}')
+                return {}
+            else:
+                logger.info('Retrying cars.com')
