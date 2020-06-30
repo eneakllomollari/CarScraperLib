@@ -1,48 +1,51 @@
-from pscraper.utils.misc import get_phone_number, locate, measure_time
-from ..consts import AUTOTRADER_QUERY, BODY_STYLE, COUNT, DOMAIN, INITIAL_STATE, INVENTORY, LISTING_ID, MAKE, \
-    MILEAGE, MODEL, NAME, OWNER_NAME, PHONE_NUMBER, PRICE, RESULTS, SELLER, SRP, STATE, TRIM, VIN, YEAR
-from ..helpers import get_autotrader_resp, update_vehicle
+import json
+import threading
+from json.decoder import JSONDecodeError
+
+import requests
+from bs4 import BeautifulSoup
+from requests.exceptions import RequestException
+
+from pscraper.utils.misc import measure_time, send_slack_message
+from ..consts import AUTOTRADER_OWNER_QUERY, AUTOTRADER_QUERY, BODY_STYLE, CITY, COUNT, DOMAIN, HEADERS, \
+    INITIAL_STATE, INVENTORY, LISTING_ID, MAKE, MAX_THREADS, MILEAGE, MODEL, NAME, OWNER, PHONE_NUMBER, PRICE, \
+    RESULTS, SELLER, SRP, STATE, STREET_ADDRESS, TRIM, VIN, YEAR
+from ..helpers import logger, update_vehicle
 
 
 @measure_time
-def scrape_autotrader(zip_code, search_radius, target_states, api):
-    """ Scrape EV data from Autotrader filtering with the specified parameters
-
-    Args:
-        zip_code (str): The zip code to perform the search in
-        search_radius (int): The search radius for the specified zip code
-        target_states (list): The states to search in (i.e. ```['CA', 'NV']```)
-        api (pscraper.api.PscraperAPI): Pscraper API to communicate with the backend
-
-    Returns:
-        total (int): Total number of cars scraped
-    """
+def scrape_autotrader():
     seller_dict, total = {}, 0
-    url = AUTOTRADER_QUERY.format(search_radius, zip_code, '{}')
-    count = get_autotrader_resp(url.format(0))[INITIAL_STATE][DOMAIN][SRP][RESULTS][COUNT]
-    for index in range(round(count / 100)):
-        inventory = get_autotrader_resp(url.format(index * 100))[INITIAL_STATE][INVENTORY]
+    results_count = get_autotrader_resp(AUTOTRADER_QUERY.format(0))[INITIAL_STATE][DOMAIN][SRP][RESULTS][COUNT]
+    count = round(results_count / 100) if results_count > 100 else 1
+    threads = []
+    for index in range(count):
+        inventory = get_autotrader_resp(AUTOTRADER_QUERY.format(index * 100))[INITIAL_STATE][INVENTORY]
         for vehicle in inventory.values():
             is_valid_vehicle = update_vehicle_keys(vehicle, seller_dict)
-            is_valid_state = seller_dict[OWNER_NAME][STATE] in target_states or seller_dict[OWNER_NAME][STATE] == ''
-            is_valid_vin = len(vehicle[VIN]) == 17
-            if is_valid_state and is_valid_vehicle and is_valid_vin:
-                update_vehicle(vehicle, api)
+            if is_valid_vehicle and len(vehicle[VIN]) == 17:
+                thread = threading.Thread(target=update_vehicle, args=(vehicle, 'Autotrader'))
+                thread.start()
+                threads.append(thread)
+                if len(threads) >= MAX_THREADS:
+                    for thread in threads:
+                        thread.join()
+                    threads.clear()
                 total += 1
+    for thread in threads:
+        thread.join()
     return total
 
 
 def update_vehicle_keys(vehicle, seller_dict):
-    if vehicle[OWNER_NAME] not in seller_dict:
-        seller_dict[OWNER_NAME] = locate(vehicle[OWNER_NAME])
-        seller_dict[OWNER_NAME][NAME] = vehicle[OWNER_NAME]
-        vehicle[SELLER] = seller_dict[OWNER_NAME]
+    if vehicle[OWNER] not in seller_dict:
+        location = locate_owner(vehicle[OWNER])
+        seller_dict[OWNER] = location
+        if location:
+            vehicle[SELLER] = location
+        else:
+            return False
     try:
-        try:
-            vehicle[SELLER][PHONE_NUMBER] = vehicle['phone']['value']
-        except KeyError:
-            vehicle[SELLER][PHONE_NUMBER] = get_phone_number(vehicle[SELLER]['place_id'])
-
         vehicle[LISTING_ID] = vehicle['id']
         vehicle[TRIM] = vehicle.get(TRIM)
 
@@ -62,3 +65,31 @@ def update_vehicle_keys(vehicle, seller_dict):
     except KeyError:
         return False
     return True
+
+
+def locate_owner(owner_id):
+    try:
+        resp = requests.get(f'{AUTOTRADER_OWNER_QUERY}{owner_id}', headers=HEADERS)
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        val = soup.find_all('script', {'type': 'application/ld+json', 'data-rh': 'true'})[0].contents[0]
+        owner = json.loads(val)
+        return {
+            NAME: owner['name'],
+            PHONE_NUMBER: owner['telephone'],
+            STREET_ADDRESS: owner['address']['streetAddress'],
+            CITY: owner['address']['addressLocality'],
+            STATE: owner['address']['addressRegion'],
+        }
+    except (AttributeError, KeyError, IndexError, JSONDecodeError, RequestException):
+        return {}
+
+
+def get_autotrader_resp(url):
+    try:
+        resp = requests.get(url, headers=HEADERS)
+        soup = BeautifulSoup(resp.text, 'html.parser').find_all('script', {'type': 'text/javascript'})
+        return json.loads(soup[3].contents[0][23:])
+    except (AttributeError, RequestException, IndexError) as error:
+        logger.critical('Autotrader response error', exc_info=error)
+        send_slack_message(text=f'Autotrader response error: \n{error}')
+        return {}
