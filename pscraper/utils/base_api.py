@@ -25,7 +25,7 @@ def request_wrapper(method, success_codes):
                 assert_that(resp.status_code, is_in(success_codes), resp.text)
                 return resp.json()
             except (RequestException, ConnectionError, AssertionError, JSONDecodeError) as error:
-                error_msg = f'{method} {url} failed\n{error}'
+                error_msg = f'{method} {url} {args} {kwargs} failed\n{error}'
                 logger.debug(error_msg, exc_info=get_traceback())
                 send_slack_message(text=error_msg)
             return -1
