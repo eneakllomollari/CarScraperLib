@@ -1,11 +1,11 @@
-# Changelog
-
 ## v2.0.0
-* Use `urllib.parse.quote` when sending address as query parameter to Google Maps API
-* Add `mileage` parameter to post to history table
-* Track mileage changes to ensure up to date information on static vehicle table
-* Change Base API from basic authentication to token authorization
-* Rename `pscraper.api.API` to `pscraper.api.PscraperAPI`
+* Add AutoTrader marketplace scraping method
+* Remove Google Maps Geo-coding api
+* Restructuring & Refactoring
+* Use token authentication for PscraperAPI
+* Improve error handling and logging
+* Perform scraping for each vehicle in a separate thread
+    * Maximum number of 25 concurrent threads
 
 #### v1.2.3
 * Add restriction on VIN number to be 17 characters long
