@@ -20,7 +20,7 @@ setup(
         'Operating System :: OS Independent',
     ],
     install_requires=[
-        'beautifulsoup4>=4.8.0,<4.9.0',
+        'beautifulsoup4>=4.8.2,<4.9.0',
         'requests>=2.22.0',
         'slackclient>=2.5.0',
         'PyHamcrest>=2.0.2',

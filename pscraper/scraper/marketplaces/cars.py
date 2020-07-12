@@ -1,14 +1,17 @@
 import json
+import logging
 import threading
 
 import requests
 from bs4 import BeautifulSoup
 from requests.exceptions import RequestException
 
-from pscraper.scraper.consts import CARS_COM_QUERY, CARS_TOKEN, CITY, HEADERS, LISTING_ID, MAX_THREADS, PAGE, \
+from pscraper.scraper.consts import CARS_COM_QUERY, CARS_TOKEN, CITY, LISTING_ID, MAX_THREADS, PAGE, \
     PHONE_NUMBER, SEARCH, SELLER, STATE, STREET_ADDRESS, TOTAL_NUM_PAGES, VEHICLE, VIN
-from pscraper.scraper.helpers import logger, update_vehicle
+from pscraper.scraper.helpers import update_vehicle
 from pscraper.utils.misc import measure_time, send_slack_message
+
+logger = logging.getLogger(__name__)
 
 
 @measure_time
@@ -37,7 +40,8 @@ def scrape_cars():
 
 def get_cars_com_resp(url):
     try:
-        resp = requests.get(url, headers=HEADERS)
+        logger.info(f'Getting: {url}')
+        resp = requests.get(url)
         soup = BeautifulSoup(resp.text, 'html.parser')
         val = soup.select('head > script')[2].contents[0]
         return json.loads(val[val.index(CARS_TOKEN) + len(CARS_TOKEN):][:-2])
