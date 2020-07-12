@@ -9,7 +9,7 @@ from requests.exceptions import RequestException
 
 from pscraper.utils.misc import get_traceback, measure_time, send_slack_message
 from ..consts import AUTOTRADER_OWNER_QUERY, AUTOTRADER_QUERY, BODY_STYLE, CITY, COUNT, DOMAIN, HEADERS, \
-    INITIAL_STATE, INVENTORY, LISTING_ID, MAKE, MAX_THREADS, MILEAGE, MODEL, NAME, OWNER, PHONE_NUMBER, PRICE, \
+    INITIAL_STATE, INVENTORY, LISTING_ID, MAKE, MILEAGE, MODEL, NAME, OWNER, PHONE_NUMBER, PRICE, \
     RESULTS, SELLER, SRP, STATE, STREET_ADDRESS, TRIM, VIN, YEAR
 from ..helpers import update_vehicle
 
@@ -36,10 +36,6 @@ def scrape_autotrader():
                 thread = threading.Thread(target=update_vehicle, args=(vehicle, 'Autotrader', lock))
                 thread.start()
                 threads.append(thread)
-                if len(threads) >= MAX_THREADS:
-                    for thread in threads:
-                        thread.join()
-                    threads.clear()
                 total += 1
     for thread in threads:
         thread.join()

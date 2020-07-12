@@ -6,8 +6,8 @@ import requests
 from bs4 import BeautifulSoup
 from requests.exceptions import RequestException
 
-from pscraper.scraper.consts import CARS_COM_QUERY, CARS_TOKEN, CITY, LISTING_ID, MAX_THREADS, PAGE, \
-    PHONE_NUMBER, SEARCH, SELLER, STATE, STREET_ADDRESS, TOTAL_NUM_PAGES, VEHICLE, VIN
+from pscraper.scraper.consts import CARS_COM_QUERY, CARS_TOKEN, CITY, LISTING_ID, PAGE, PHONE_NUMBER, SEARCH, SELLER, \
+    STATE, STREET_ADDRESS, TOTAL_NUM_PAGES, VEHICLE, VIN
 from pscraper.scraper.helpers import update_vehicle
 from pscraper.utils.misc import measure_time, send_slack_message
 
@@ -28,10 +28,6 @@ def scrape_cars():
                 thread = threading.Thread(target=update_vehicle, args=(vehicle, 'Cars.com', lock))
                 thread.start()
                 threads.append(thread)
-                if len(threads) >= MAX_THREADS:
-                    for thread in threads:
-                        thread.join()
-                    threads.clear()
                 total += 1
     for thread in threads:
         thread.join()
