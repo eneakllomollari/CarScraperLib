@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 @measure_time
 def scrape_autotrader():
     seller_dict, total = {}, 0
+    lock = threading.Lock()
     resp = get_autotrader_resp(AUTOTRADER_QUERY.format(0))
     if not resp:
         return 0
@@ -32,7 +33,7 @@ def scrape_autotrader():
         for vehicle in resp[INITIAL_STATE][INVENTORY].values():
             is_valid_vehicle = update_vehicle_keys(vehicle, seller_dict)
             if is_valid_vehicle and len(vehicle[VIN]) == 17:
-                thread = threading.Thread(target=update_vehicle, args=(vehicle, 'Autotrader'))
+                thread = threading.Thread(target=update_vehicle, args=(vehicle, 'Autotrader', lock))
                 thread.start()
                 threads.append(thread)
                 if len(threads) >= MAX_THREADS:

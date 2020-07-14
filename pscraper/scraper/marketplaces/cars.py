@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 @measure_time
 def scrape_cars():
-    threads = []
+    threads, lock = [], threading.Lock()
     total, num_pages = 0, get_cars_com_resp(CARS_COM_QUERY.format(1))[PAGE][SEARCH][TOTAL_NUM_PAGES]
     for i in range(num_pages):
         vehicles = get_cars_com_resp(CARS_COM_QUERY.format(i))[PAGE][VEHICLE]
@@ -25,7 +25,7 @@ def scrape_cars():
             is_valid_vin = len(vehicle[VIN]) == 17
             is_valid_seller = all([attr in vehicle[SELLER] for attr in [STREET_ADDRESS, CITY, STATE]])
             if is_valid_vehicle and is_valid_vin and is_valid_seller:
-                thread = threading.Thread(target=update_vehicle, args=(vehicle, 'Cars.com'))
+                thread = threading.Thread(target=update_vehicle, args=(vehicle, 'Cars.com', lock))
                 thread.start()
                 threads.append(thread)
                 if len(threads) >= MAX_THREADS:
