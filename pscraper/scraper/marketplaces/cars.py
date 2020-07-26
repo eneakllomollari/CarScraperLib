@@ -1,15 +1,16 @@
 import json
 import logging
 import threading
+from json.decoder import JSONDecodeError
 
 import requests
 from bs4 import BeautifulSoup
 from requests.exceptions import RequestException
 
-from pscraper.scraper.consts import CARS_COM_QUERY, CARS_TOKEN, CITY, LISTING_ID, PAGE, PHONE_NUMBER, SEARCH, SELLER, \
-    STATE, STREET_ADDRESS, TOTAL_NUM_PAGES, VEHICLE, VIN
-from pscraper.scraper.helpers import update_vehicle
-from pscraper.utils.misc import measure_time, send_slack_message
+from pscraper.utils.misc import get_traceback, measure_time, send_slack_message
+from ..consts import CARS_COM_QUERY, CARS_TOKEN, CITY, LISTING_ID, PAGE, PHONE_NUMBER, SEARCH, SELLER, STATE, \
+    STREET_ADDRESS, TOTAL_NUM_PAGES, VEHICLE, VIN
+from ..helpers import update_vehicle
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,10 @@ logger = logging.getLogger(__name__)
 @measure_time
 def scrape_cars():
     threads, lock = [], threading.Lock()
-    total, num_pages = 0, get_cars_com_resp(CARS_COM_QUERY.format(1))[PAGE][SEARCH][TOTAL_NUM_PAGES]
+    resp = get_cars_com_resp(CARS_COM_QUERY.format(1))
+    if not resp:
+        return
+    total, num_pages = 0, resp[PAGE][SEARCH][TOTAL_NUM_PAGES]
     for i in range(num_pages):
         vehicles = get_cars_com_resp(CARS_COM_QUERY.format(i))[PAGE][VEHICLE]
         for vehicle in vehicles:
@@ -41,7 +45,7 @@ def get_cars_com_resp(url):
         soup = BeautifulSoup(resp.text, 'html.parser')
         val = soup.select('head > script')[2].contents[0]
         return json.loads(val[val.index(CARS_TOKEN) + len(CARS_TOKEN):][:-2])
-    except (AttributeError, RequestException, IndexError) as error:
-        logger.critical('cars.com response error', exc_info=error)
-        send_slack_message(text=f'cars.com response error: \n{error}')
+    except (AttributeError, KeyError, IndexError, JSONDecodeError, RequestException):
+        logger.critical(f'cars.com response error\n{resp.text}', exc_info=1)
+        send_slack_message(text=f'cars.com response error: \n{get_traceback()}')
         return {}

@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 from requests.exceptions import RequestException
 
 from pscraper.utils.misc import get_traceback, measure_time, send_slack_message
-from ..consts import AUTOTRADER_OWNER_QUERY, AUTOTRADER_QUERY, BODY_STYLE, CITY, COUNT, DOMAIN, HEADERS, \
+from ..consts import AUTOTRADER_OWNER_QUERY, AUTOTRADER_QUERY, BODY_STYLE, CITY, COUNT, DOMAIN, AUTOTRADER_HEADERS, \
     INITIAL_STATE, INVENTORY, LISTING_ID, MAKE, MILEAGE, MODEL, NAME, OWNER, PHONE_NUMBER, PRICE, \
     RESULTS, SELLER, SRP, STATE, STREET_ADDRESS, TRIM, VIN, YEAR
 from ..helpers import update_vehicle
@@ -74,7 +74,7 @@ def update_vehicle_keys(vehicle, seller_dict):
 
 def locate_owner(owner_id):
     try:
-        resp = requests.get(f'{AUTOTRADER_OWNER_QUERY}{owner_id}', headers=HEADERS)
+        resp = requests.get(f'{AUTOTRADER_OWNER_QUERY}{owner_id}', headers=AUTOTRADER_HEADERS)
         soup = BeautifulSoup(resp.text, 'html.parser')
         val = soup.find_all('script', {'type': 'application/ld+json', 'data-rh': 'true'})[0].contents[0]
         owner = json.loads(val)
@@ -92,11 +92,11 @@ def locate_owner(owner_id):
 def get_autotrader_resp(url):
     try:
         logger.info(f'Getting: {url}')
-        resp = requests.get(url, headers=HEADERS)
+        resp = requests.get(url, headers=AUTOTRADER_HEADERS)
         soup = BeautifulSoup(resp.text, 'html.parser').find_all('script', {'type': 'text/javascript'})
-        soup = soup[3].contents[0]
+        soup = soup[2].contents[0]
         return json.loads(soup[23:])
     except (AttributeError, KeyError, IndexError, JSONDecodeError, RequestException):
-        logger.critical('Autotrader response error')
-        send_slack_message(text=f'Autotrader response error: \n{get_traceback()}\n{resp.text}')
+        logger.critical(f'Autotrader response error\n{resp.text}', exc_info=1)
+        send_slack_message(text=f'Autotrader response error\n{get_traceback()}')
         return {}
