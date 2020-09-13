@@ -1,3 +1,4 @@
+from concurrent import futures
 from datetime import datetime
 from logging import getLogger
 
@@ -24,7 +25,7 @@ def update_vehicle(vehicle, marketplace, lock):
     with lock:
         seller_id = get_seller_id(vehicle, api)
     if seller_id == -1:
-        return
+        return -1
 
     # Post to history table
     api.history_post(**{
@@ -40,7 +41,7 @@ def update_vehicle(vehicle, marketplace, lock):
     db_vehicles = api.vehicle_get(marketplace=marketplace, vin=vehicle[VIN])
 
     if db_vehicles == -1:
-        return
+        return 0
     elif len(db_vehicles) >= 1:
         # Vehicle exists, update data
         db_vehicle = db_vehicles[0]
@@ -57,7 +58,7 @@ def update_vehicle(vehicle, marketplace, lock):
             payload['seller'] = seller_id
 
         api.vehicle_patch(marketplace=marketplace, vin=vehicle[VIN], **payload)
-        return
+        return 0
 
     # New vehicle, add it to the table
     payload = {
@@ -76,6 +77,7 @@ def update_vehicle(vehicle, marketplace, lock):
         'seller': seller_id,
     }
     api.vehicle_post(marketplace=marketplace, **payload)
+    return 0
 
 
 def get_seller_id(vehicle, api):
@@ -104,3 +106,7 @@ def get_seller_id(vehicle, api):
     }
     new_seller = api.seller_post(**payload)
     return new_seller['id'] if new_seller != -1 else -1
+
+
+def count_futures_total(marketplace_futures):
+    return sum([1 if future.result() == 0 else 0 for future in futures.as_completed(marketplace_futures)])

@@ -1,31 +1,26 @@
 import json
 import logging
-import threading
 from json.decoder import JSONDecodeError
 
 import requests
 from bs4 import BeautifulSoup
 from requests.exceptions import RequestException
 
-from pscraper.utils.misc import get_traceback, measure_time, send_slack_message
-from ..consts import AUTOTRADER_OWNER_QUERY, AUTOTRADER_QUERY, BODY_STYLE, CITY, COUNT, DOMAIN, AUTOTRADER_HEADERS, \
-    INITIAL_STATE, INVENTORY, LISTING_ID, MAKE, MILEAGE, MODEL, NAME, OWNER, PHONE_NUMBER, PRICE, \
-    RESULTS, SELLER, SRP, STATE, STREET_ADDRESS, TRIM, VIN, YEAR
-from ..helpers import update_vehicle
+from pscraper.utils.misc import get_traceback, send_slack_message
+from ..consts import AUTOTRADER_HEADERS, AUTOTRADER_OWNER_QUERY, AUTOTRADER_QUERY, BODY_STYLE, CITY, COUNT, DOMAIN, \
+    INITIAL_STATE, INVENTORY, LISTING_ID, MAKE, MILEAGE, MODEL, NAME, OWNER, PHONE_NUMBER, PRICE, RESULTS, SELLER, SRP, \
+    STATE, STREET_ADDRESS, TRIM, VIN, YEAR
 
 logger = logging.getLogger(__name__)
 
 
-@measure_time
 def scrape_autotrader():
-    seller_dict, total = {}, 0
-    lock = threading.Lock()
+    seller_dict = {}
     resp = get_autotrader_resp(AUTOTRADER_QUERY.format(0))
     if not resp:
         return 0
     results_count = resp[INITIAL_STATE][DOMAIN][SRP][RESULTS][COUNT]
     count = round(results_count / 100) if results_count > 100 else 1
-    threads = []
     for index in range(count):
         resp = get_autotrader_resp(AUTOTRADER_QUERY.format(index * 100))
         if not resp:
@@ -33,13 +28,7 @@ def scrape_autotrader():
         for vehicle in resp[INITIAL_STATE][INVENTORY].values():
             is_valid_vehicle = update_vehicle_keys(vehicle, seller_dict)
             if is_valid_vehicle and len(vehicle[VIN]) == 17:
-                thread = threading.Thread(target=update_vehicle, args=(vehicle, 'Autotrader', lock))
-                thread.start()
-                threads.append(thread)
-                total += 1
-    for thread in threads:
-        thread.join()
-    return total
+                yield vehicle
 
 
 def update_vehicle_keys(vehicle, seller_dict):
@@ -97,6 +86,5 @@ def get_autotrader_resp(url):
         soup = soup[2].contents[0]
         return json.loads(soup[23:])
     except (AttributeError, KeyError, IndexError, JSONDecodeError, RequestException):
-        logger.critical(f'Autotrader response error\n{resp.text}', exc_info=1)
         send_slack_message(text=f'Autotrader response error\n{get_traceback()}')
         return {}
