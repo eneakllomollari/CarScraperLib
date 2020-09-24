@@ -8,8 +8,8 @@ from requests.exceptions import RequestException
 
 from pscraper.utils.misc import get_traceback, send_slack_message
 from ..consts import AUTOTRADER_HEADERS, AUTOTRADER_OWNER_QUERY, AUTOTRADER_QUERY, BODY_STYLE, CITY, COUNT, DOMAIN, \
-    INITIAL_STATE, INVENTORY, LISTING_ID, MAKE, MILEAGE, MODEL, NAME, OWNER, PHONE_NUMBER, PRICE, RESULTS, SELLER, SRP, \
-    STATE, STREET_ADDRESS, TRIM, VIN, YEAR
+    INITIAL_STATE, INVENTORY, LISTING_ID, MAKE, MILEAGE, MODEL, NAME, OWNER, PHONE_NUMBER, PRICE, RESULTS, SELLER, \
+    SRP, STATE, STREET_ADDRESS, TRIM, VIN, YEAR
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +18,11 @@ def scrape_autotrader():
     seller_dict = {}
     resp = get_autotrader_resp(AUTOTRADER_QUERY.format(0))
     if not resp:
-        return 0
+        return
     results_count = resp[INITIAL_STATE][DOMAIN][SRP][RESULTS][COUNT]
     count = round(results_count / 100) if results_count > 100 else 1
     for index in range(count):
         resp = get_autotrader_resp(AUTOTRADER_QUERY.format(index * 100))
-        if not resp:
-            continue
         for vehicle in resp[INITIAL_STATE][INVENTORY].values():
             is_valid_vehicle = update_vehicle_keys(vehicle, seller_dict)
             if is_valid_vehicle and len(vehicle[VIN]) == 17:

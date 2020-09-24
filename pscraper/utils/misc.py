@@ -35,7 +35,7 @@ def send_slack_message(**kwargs):
         kwargs['text'] = f'```{datetime.now()}: {kwargs["text"]}```'
     if 'channel' not in kwargs:
         kwargs['channel'] = '#errors'
-    if getuser() == 'enea' or getuser() == 'phevscraping':
+    if getuser() == 'enea':
         kwargs['channel'] = '#debug'
 
     client = slack.WebClient(token=os.getenv('SLACK_API_TOKEN'))

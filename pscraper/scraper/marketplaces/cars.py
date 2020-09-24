@@ -13,7 +13,6 @@ from ..consts import CARS_COM_QUERY, CARS_TOKEN, CITY, LISTING_ID, PAGE, PHONE_N
 logger = logging.getLogger(__name__)
 
 
-# @measure_time
 def scrape_cars():
     resp = get_cars_com_resp(CARS_COM_QUERY.format(1))
     if not resp:

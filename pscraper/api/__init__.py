@@ -14,7 +14,7 @@ class PscraperAPI(BaseAPI):
     """
 
     def __init__(self):
-        host = os.getenv('PSCRAPER_HOST')
+        host = os.getenv('PSCRAPER_HOST', 'pscraper.herokuapp.com')
         token = os.getenv('PSCRAPER_TOKEN')
         super().__init__(f'https://{host}/api/v1', token)
 
