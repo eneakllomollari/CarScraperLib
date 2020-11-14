@@ -14,13 +14,6 @@ logger = getLogger(__name__)
 
 
 def measure_time(func):
-    """
-    A decorator to call a function and track the time it takes for the function to finish execution
-
-    Args:
-        func: Function to be decorated
-    """
-
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         start_time = time.time()
@@ -42,7 +35,7 @@ def send_slack_message(**kwargs):
         kwargs['text'] = f'```{datetime.now()}: {kwargs["text"]}```'
     if 'channel' not in kwargs:
         kwargs['channel'] = '#errors'
-    if getuser() == 'enea' or getuser() == 'phevscraping':
+    if getuser() == 'enea':
         kwargs['channel'] = '#debug'
 
     client = slack.WebClient(token=os.getenv('SLACK_API_TOKEN'))

@@ -1,3 +1,4 @@
+from concurrent import futures
 from datetime import datetime
 from logging import getLogger
 
@@ -10,7 +11,7 @@ from ..utils.misc import send_slack_message
 logger = getLogger(__name__)
 
 
-def update_vehicle(vehicle, marketplace):
+def update_vehicle(vehicle, marketplace, lock):
     """
     Updates vehicle's last date and duration if it exists in the database, creates a new vehicle if it doesn't.
     Updates vehicle's price/seller/mileage if a change is found from the existing price/seller.
@@ -18,12 +19,13 @@ def update_vehicle(vehicle, marketplace):
     Args:
         vehicle (dict): vehicle to be created/updated
         marketplace (str): marketplaces name: Autotrader, Cars.com
+        lock (threading.Lock): Lock to control synchronizing of threads
     """
     api = PscraperAPI()
-
-    seller_id = get_seller_id(vehicle, api)
+    with lock:
+        seller_id = get_seller_id(vehicle, api)
     if seller_id == -1:
-        return
+        return -1
 
     # Post to history table
     api.history_post(**{
@@ -37,8 +39,9 @@ def update_vehicle(vehicle, marketplace):
 
     # Look for existing VIN
     db_vehicles = api.vehicle_get(marketplace=marketplace, vin=vehicle[VIN])
+
     if db_vehicles == -1:
-        return
+        return 0
     elif len(db_vehicles) >= 1:
         # Vehicle exists, update data
         db_vehicle = db_vehicles[0]
@@ -55,7 +58,7 @@ def update_vehicle(vehicle, marketplace):
             payload['seller'] = seller_id
 
         api.vehicle_patch(marketplace=marketplace, vin=vehicle[VIN], **payload)
-        return
+        return 0
 
     # New vehicle, add it to the table
     payload = {
@@ -74,18 +77,10 @@ def update_vehicle(vehicle, marketplace):
         'seller': seller_id,
     }
     api.vehicle_post(marketplace=marketplace, **payload)
+    return 0
 
 
 def get_seller_id(vehicle, api):
-    """
-    Returns a seller id (primary_key). Search for existing seller by address.
-    If not found creates a new seller and returns its id.
-    Requires `seller` to have `streetAddress`, `city` and `state`. If any are missing returns -1.
-
-    Args:
-        vehicle (dict): Vehicle whose seller needs to be created/searched
-        api (pscraper.api.PscraperAPI): Pscraper api, that allows retrieval/creation of marketplaces
-    """
     seller = vehicle[SELLER]
     try:
         address = ADDRESS_FORMAT.format(seller[STREET_ADDRESS], seller[CITY], seller[STATE])
@@ -95,6 +90,7 @@ def get_seller_id(vehicle, api):
 
     # Search for existing seller
     db_seller = api.seller_get(address=address)
+
     if db_seller == -1:
         return -1
     elif len(db_seller) >= 1:
@@ -110,3 +106,7 @@ def get_seller_id(vehicle, api):
     }
     new_seller = api.seller_post(**payload)
     return new_seller['id'] if new_seller != -1 else -1
+
+
+def count_futures_total(marketplace_futures):
+    return sum([1 if future.result() == 0 else 0 for future in futures.as_completed(marketplace_futures)])
